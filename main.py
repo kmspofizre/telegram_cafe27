@@ -1,16 +1,35 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import logging
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ShippingQueryHandler, PreCheckoutQueryHandler
+from telegram.ext import CallbackQueryHandler
+from telegram import LabeledPrice, ShippingQuery, ShippingOption, PreCheckoutQuery, SuccessfulPayment
+from handlers import start, text_handler, callback_hand
 
 
-# Press the green button in the gutter to run the script.
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+TOKEN = '5412543523:AAEiLUcXgspy4bqUyKFCkC7lmsdjIzvskAE'
+
+
+def main():
+    update = Updater(TOKEN)
+    dp = update.dispatcher
+    start_handler = CommandHandler('start', start)
+    text_handler1 = MessageHandler(Filters.text, text_handler)
+    callback_handler = CallbackQueryHandler(callback_hand)
+    dp.add_handler(start_handler)
+    dp.add_handler(text_handler1)
+    dp.add_handler(callback_handler)
+    update.start_polling()
+    update.idle()
+
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    main()
