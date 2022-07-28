@@ -72,6 +72,16 @@ info_keyboard_en = InlineKeyboardMarkup([
 ])
 
 
+single_vip_keyboard_ru = InlineKeyboardMarkup([
+    [InlineKeyboardButton(text='Купить VIP статус', callback_data='buyvip')]
+])
+
+
+single_vip_keyboard_en = InlineKeyboardMarkup([
+    [InlineKeyboardButton(text='Buy VIP status', callback_data='buyvip')]
+])
+
+
 def card_inline_keyboard_del_ru(add_del, des_min):
     with open('json/messages.json') as json_messages:
         json_messages_data = json.load(json_messages)

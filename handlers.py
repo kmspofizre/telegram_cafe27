@@ -10,21 +10,24 @@ from data.restaurants import Restaurant
 from data.scores import Scores
 import datetime
 from keyboards import main_menu_keyboard, card_inline_keyboard_del_ru, \
-    card_inline_keyboard_del_en,\
-    main_menu_keyboard_en, geoposition_keyboard,\
-    geoposition_keyboard_en, rate_keyboard, personal_account_vip_ru,\
-    personal_account_default_ru, personal_account_vip_en,\
-    personal_account_default_en, info_keyboard_ru, info_keyboard_en
+    card_inline_keyboard_del_en, \
+    main_menu_keyboard_en, geoposition_keyboard, \
+    geoposition_keyboard_en, rate_keyboard, personal_account_vip_ru, \
+    personal_account_default_ru, personal_account_vip_en, \
+    personal_account_default_en, info_keyboard_ru, info_keyboard_en, single_vip_keyboard_ru, single_vip_keyboard_en
 
 from templates import card_html_with_score_ru, card_html_without_score_ru, \
     card_short_html, card_html_with_score_en, card_html_without_score_en, card_short_html_en
 from distance import lonlat_distance
+from payment import vip_price
 
 db_session.global_init("db/cafe27.db")
 db_sess = db_session.create_session()
 
 vid_ext = tuple('.mp4')
 ph_ext = tuple(['.jpg', '.jpeg', '.png'])
+
+P_TOKEN = "381764678:TEST:40489"
 
 
 def get_message_from_json(language, context, message_type):
@@ -180,14 +183,8 @@ def show_full_description(restaurant, message, chat, context, language, message_
                           redact=False):
     restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(restaurant)).one()
     if restaurant.number_of_scores == 0:
-        if len(restaurant.description) > 100:
-            description = restaurant.description[:100].split()
-            description = ' '.join(description[:len(description) - 1])
-            description_en = restaurant.description_en[:100].split()
-            description_en = ' '.join(description_en[:len(description_en) - 1])
-        else:
-            description = restaurant.description
-            description_en = restaurant.description_en
+        description = restaurant.description
+        description_en = restaurant.description_en
         try:
             user_language = context.chat_data['language']
             if user_language == 'ru':
@@ -216,14 +213,8 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                   working_days=restaurant.working_days_en,
                                                                   average_price=restaurant.average_price)
     else:
-        if len(restaurant.description) > 100:
-            description = restaurant.description[:100].split()
-            description = ' '.join(description[:len(description) - 1])
-            description_en = restaurant.description_en[:100].split()
-            description_en = ' '.join(description_en[:len(description_en) - 1])
-        else:
-            description = restaurant.description
-            description_en = restaurant.description_en
+        description = restaurant.description
+        description_en = restaurant.description_en
         try:
             user_language = context.chat_data['language']
             if user_language == 'ru':
@@ -666,6 +657,36 @@ def text_handler(update, context):
                     text = json_messages_data['messages']['en']['info']
                     keyboard = info_keyboard_en
             update.message.reply_text(text, reply_markup=keyboard)
+        elif update.message.text in ('Become VIP 💵', 'Стать VIP 💵'):
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['VIP_advantage']
+                    keyboard = single_vip_keyboard_ru
+                else:
+                    text = json_messages_data['messages']['en']['VIP_advantage']
+                    keyboard = single_vip_keyboard_en
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['VIP_advantage']
+                    keyboard = single_vip_keyboard_ru
+                else:
+                    text = json_messages_data['messages']['en']['VIP_advantage']
+                    keyboard = single_vip_keyboard_en
+            update.message.reply_text(text, reply_markup=keyboard)
+        elif update.message.text == 'VIP 👑':
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['VIP_advantage']
+                else:
+                    text = json_messages_data['messages']['en']['VIP_advantage']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['VIP_advantage']
+                else:
+                    text = json_messages_data['messages']['en']['VIP_advantage']
+            update.message.reply_text(text)
 
 
 def location_hand(update, context):
@@ -924,3 +945,80 @@ def callback_hand(update, context):
                 else:
                     text = json_messages_data['messages']['en']['about']
             context.bot.sendMessage(update.callback_query.message.chat_id, text)
+        elif data[0] == 'buyvip':
+            if not db_sess.query(User).filter(User.telegram_id == update.callback_query.from_user.id).one().is_vip:
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        title = 'VIP статус'
+                        description = json_messages_data['messages']['ru']['VIP_advantage']
+                        lan = 'ru'
+                    else:
+                        title = 'VIP status'
+                        description = json_messages_data['messages']['en']['VIP_advantage']
+                        lan = 'en'
+                except KeyError:
+                    if update.callback_query.from_user.language_code == 'ru':
+                        title = 'VIP статус'
+                        description = json_messages_data['messages']['ru']['VIP_advantage']
+                        lan = 'ru'
+                    else:
+                        title = 'VIP status'
+                        description = json_messages_data['messages']['en']['VIP_advantage']
+                        lan = 'en'
+                pay_message = context.bot.sendInvoice(update.callback_query.message.chat_id,
+                                                      title=title,
+                                                      description=description,
+                                                      provider_token=P_TOKEN,
+                                                      currency='rub',
+                                                      need_email=True,
+                                                      need_phone_number=True,
+                                                      prices=[vip_price(lan)],
+                                                      payload='VIP_invoice')
+                context.chat_data['pay_message'] = pay_message.message_id
+            else:
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        text = json_messages_data['messages']['ru']['already_VIP']
+                    else:
+                        text = json_messages_data['messages']['en']['already_VIP']
+                except KeyError:
+                    if update.callback_query.from_user.language_code == 'ru':
+                        text = json_messages_data['messages']['ru']['already_VIP']
+                    else:
+                        text = json_messages_data['messages']['en']['already_VIP']
+                context.bot.sendMessage(update.callback_query.message.chat_id, text)
+
+
+def checkout_process(update, context):
+    context.bot.answerPreCheckoutQuery(
+        update.pre_checkout_query.id,
+        ok=True
+    )
+
+
+def successful_payment(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['successful_payment']
+            keyboard = personal_account_vip_ru
+        else:
+            text = json_messages_data['messages']['en']['successful_payment']
+            keyboard = personal_account_vip_en
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['successful_payment']
+            keyboard = personal_account_vip_ru
+        else:
+            text = json_messages_data['messages']['en']['successful_payment']
+            keyboard = personal_account_vip_en
+    update.message.reply_text(f'{text} {update.message.successful_payment.total_amount / 100}'
+                              f'{update.message.successful_payment.currency}', reply_markup=keyboard)
+    user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one()
+    user.is_vip = True
+    context.bot.deleteMessage(update.message.chat_id, context.chat_data['pay_message'])
+    db_sess.commit()

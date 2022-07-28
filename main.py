@@ -4,7 +4,7 @@ import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ShippingQueryHandler, PreCheckoutQueryHandler
 from telegram.ext import CallbackQueryHandler
 from telegram import LabeledPrice, ShippingQuery, ShippingOption, PreCheckoutQuery, SuccessfulPayment
-from handlers import start, text_handler, callback_hand, location_hand
+from handlers import start, text_handler, callback_hand, location_hand, checkout_process, successful_payment
 
 
 logging.basicConfig(
@@ -29,6 +29,8 @@ def main():
     dp.add_handler(text_handler1)
     dp.add_handler(callback_handler)
     dp.add_handler(location_handler)
+    dp.add_handler(PreCheckoutQueryHandler(checkout_process))
+    dp.add_handler(MessageHandler(Filters.successful_payment, successful_payment))
     update.start_polling()
     update.idle()
 

@@ -18,7 +18,11 @@
            "favourite_empty": "The favorites section is empty",
            "personal_account": "Personal account \uD83D\uDC64",
            "info": "Info ℹ",
-           "about": "About us"
+           "about": "About us",
+           "VIP_advantage": "VIP advantage",
+           "VIP_status": "VIP status",
+           "successful_payment": "You paid",
+           "already_VIP": "You already have VIP status"
          },
          "ru": {
            "greeting": "Здравствуйте",
@@ -37,7 +41,14 @@
            "favourite_empty": "Раздел избранное пуст",
            "personal_account": "Личный кабинет \uD83D\uDC64",
            "info": "Инфо ℹ",
-           "about": "О нас"
+           "about": "О нас",
+           "VIP_advantage": "Преимущества VIP",
+           "VIP_status": "VIP статус",
+           "successful_payment": "Вы заплатили",
+           "already_VIP": "Вы уже владеете VIP статусом"
          }
+      },
+      "payments": {
+        "VIP": 50000
       }
 }
