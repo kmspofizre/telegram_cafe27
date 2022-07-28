@@ -1,9 +1,9 @@
 import math
 
+
 # Определяем функцию, считающую расстояние между двумя точками, заданными координатами
 def lonlat_distance(a, b):
-
-    degree_to_meters_factor = 111 * 1000 # 111 километров в метрах
+    degree_to_meters_factor = 111 * 1000  # 111 километров в метрах
     a_lon, a_lat = a
     b_lon, b_lat = b
 

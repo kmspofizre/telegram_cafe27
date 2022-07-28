@@ -1,0 +1,43 @@
+{
+      "message": "Messages",
+      "messages":{
+        "en": {
+           "greeting": "Hi",
+           "introduction": "Introduction",
+           "delete_from_favourite": "Delete from favourite \uD83D\uDC94",
+           "contact": "Contact ☎️",
+           "description": "Long description",
+           "add_to_favourite": "Add to favourite ❤️",
+           "rate": "Rate ⭐️",
+           "places": "Establishments by category:",
+           "actions": "Actions:",
+           "minimize": "Minimize",
+           "distance": "You can find out the distance",
+           "back": "Back to main menu",
+           "distance_to_object": "Distance to the restaurant - ",
+           "favourite_empty": "The favorites section is empty",
+           "personal_account": "Personal account \uD83D\uDC64",
+           "info": "Info ℹ",
+           "about": "About us"
+         },
+         "ru": {
+           "greeting": "Здравствуйте",
+           "introduction": "О компании",
+           "delete_from_favourite": "Удалить из избранного \uD83D\uDC94",
+           "contact": "Связаться ☎️",
+           "description": "Подробнее",
+           "add_to_favourite": "Добавить в избранное ❤️",
+           "rate": "Оценить ⭐️",
+           "places": "Заведения по категориям:",
+           "actions": "Действия:",
+           "minimize": "Свернуть",
+           "distance": "Вы можете узнать расстояние",
+           "back": "Главное меню",
+           "distance_to_object": "Расстояние до заведения - ",
+           "favourite_empty": "Раздел избранное пуст",
+           "personal_account": "Личный кабинет \uD83D\uDC64",
+           "info": "Инфо ℹ",
+           "about": "О нас"
+         }
+      }
+}

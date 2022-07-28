@@ -11,7 +11,7 @@ class User(SqlAlchemyBase):
     telegram_id = sqlalchemy.Column(sqlalchemy.Integer, unique=True, nullable=False)
     username = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
     date_of_appearance = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False)
-    favourite = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
+    favourite = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False, default=0)
     owner = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
     is_vip = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     name = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)

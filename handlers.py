@@ -1,3 +1,4 @@
+import telegram.error
 from telegram.ext import CommandHandler, MessageHandler, Filters, ShippingQueryHandler, PreCheckoutQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputMediaVideo
 import json
@@ -8,8 +9,16 @@ from data.blacklist import Blacklist
 from data.restaurants import Restaurant
 from data.scores import Scores
 import datetime
-from keyboards import main_menu_keyboard
-from templates import card_html_with_score, card_html_without_score, card_short_html
+from keyboards import main_menu_keyboard, card_inline_keyboard_del_ru, \
+    card_inline_keyboard_del_en,\
+    main_menu_keyboard_en, geoposition_keyboard,\
+    geoposition_keyboard_en, rate_keyboard, personal_account_vip_ru,\
+    personal_account_default_ru, personal_account_vip_en,\
+    personal_account_default_en, info_keyboard_ru, info_keyboard_en
+
+from templates import card_html_with_score_ru, card_html_without_score_ru, \
+    card_short_html, card_html_with_score_en, card_html_without_score_en, card_short_html_en
+from distance import lonlat_distance
 
 db_session.global_init("db/cafe27.db")
 db_sess = db_session.create_session()
@@ -34,42 +43,43 @@ def get_message_from_json(language, context, message_type):
             return json_messages_data['messages']['en'][message_type]
 
 
-def choose_restaurant_type(callback_data, user_tgid):
-    user = db_sess.query(User).filter(User.telegram_id == user_tgid).all()[0]
+def choose_restaurant_type(callback_data, user_tgid, user_tlg, context):
+    user = db_sess.query(User).filter(User.telegram_id == user_tgid).one()
     user_fav = list(map(int, user.favourite.split(', ')))
     restaurant_type_id = int(callback_data[1])
-    chosen_restaurants = db_sess.query(Restaurant).filter(Restaurant.type == restaurant_type_id,
-                                                          Restaurant.confirmed).all()
+    chosen_restaurants = db_sess.query(Restaurant).filter(Restaurant.confirmed).all()
+    chosen_restaurants = filter(lambda x: restaurant_type_id in map(int, x.type.split(', ')), chosen_restaurants)
     to_send = list()
     for restaurant in chosen_restaurants:
         d = dict()
-        if restaurant.number_of_scores == 0:
-            if len(restaurant.description) > 100:
-                description = restaurant.description[:100].split()
-                description = ' '.join(description[:len(description) - 1])
-            else:
-                description = restaurant.description
-            html_long = card_html_without_score.substitute(name=restaurant.name,
-                                                           description=description,
-                                                           working_hours=restaurant.working_hours,
-                                                           working_days=restaurant.working_days,
-                                                           average_price=restaurant.average_price)
+
+        if len(restaurant.description) > 100:
+            description = restaurant.description[:100].split()
+            description = ' '.join(description[:len(description) - 1])
+            description_en = restaurant.description_en[:100].split()
+            description_en = ' '.join(description_en[:len(description_en) - 1])
         else:
-            if len(restaurant.description) > 100:
-                description = restaurant.description[:100].split()
-                description = ' '.join(description[:len(description) - 1])
-            else:
-                description = restaurant.description
-            html_long = card_html_with_score.substitute(name=restaurant.name,
+            description = restaurant.description
+            description_en = restaurant.description_en
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        working_hours=restaurant.working_hours,
-                                                        working_days=restaurant.working_days,
-                                                        average_price=restaurant.average_price,
-                                                        average_score=restaurant.score,
-                                                        number_of_scores=restaurant.number_of_scores)
-        html_short = card_short_html.substitute(name=restaurant.name,
-                                                description=description,
-                                                average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price)
+            else:
+                html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                           description=description_en,
+                                                           average_price=restaurant.average_price)
+        except KeyError:
+            if user_tlg.language_code == 'ru':
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price)
+            else:
+                html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                           description=description_en,
+                                                           average_price=restaurant.average_price)
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -80,26 +90,329 @@ def choose_restaurant_type(callback_data, user_tgid):
         media[0].caption = html_short
         media[0].parse_mode = 'HTML'
         d['id'] = restaurant.id
-        d['html_long'] = html_long
         d['html_short'] = html_short
         d['media'] = media
         d['favourite'] = restaurant.id in user_fav
-        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).all()[0].user_link
-        try:
-            d['score'] = db_sess.query(Scores).filter(Scores.user == user.id,
-                                                      Scores.restaurant == restaurant.id).all()[0].score
-        except Exception:
-            d['score'] = None
+        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        d['vip_owner'] = restaurant.vip_owner
         to_send.append(d)
 
     return to_send
+
+
+def add_to_favourite(user_tg, restaurant, message, chat, context, media_message, json_data, dm):
+    user = db_sess.query(User).filter(User.telegram_id == user_tg.id).one()
+    favourite = user.favourite.split(', ')
+    favourite.append(str(restaurant))
+    user.favourite = ', '.join(favourite)
+    language_code = user_tg.language_code
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', dm)
+            text = json_data['messages']['ru']['actions']
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', dm)
+            text = json_data['messages']['en']['actions']
+    except KeyError:
+        if language_code == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', dm)
+            text = json_data['messages']['ru']['actions']
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', dm)
+            text = json_data['messages']['en']['actions']
+    fav_button.callback_data = f"delfav_{restaurant}_{media_message}_{dm}"
+    chosen_restaurant = db_sess.query(Restaurant).filter(Restaurant.id == restaurant).one()
+    try:
+        chosen_restaurant.in_favourite += 1
+    except TypeError:
+        chosen_restaurant.in_favourite = 1
+    restaurant_owner = db_sess.query(User).filter(User.id == chosen_restaurant.owner).one().user_link
+    tlg_button.url = restaurant_owner
+    describe.callback_data = f"des_{restaurant}_{media_message}_{dm}"
+    rate.callback_data = f"rate_{restaurant}_{media_message}_{dm}"
+    inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                         [fav_button],
+                                         [rate]])
+    context.bot.editMessageText(chat_id=chat, message_id=message, text=text, reply_markup=inl_keyboard)
+    db_sess.commit()
+
+
+def del_from_favourite(user_tg, restaurant, message, chat, context, media_message, json_data, dm):
+    user = db_sess.query(User).filter(User.telegram_id == user_tg.id).one()
+    favourite = user.favourite.split(', ')
+    favourite.remove(str(restaurant))
+    user.favourite = ', '.join(favourite)
+    language_code = user_tg.language_code
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', dm)
+            text = json_data['messages']['ru']['actions']
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', dm)
+            text = json_data['messages']['en']['actions']
+    except KeyError:
+        if language_code == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', dm)
+            text = json_data['messages']['ru']['actions']
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', dm)
+            text = json_data['messages']['en']['actions']
+    fav_button.callback_data = f"addfav_{restaurant}_{media_message}_{dm}"
+    chosen_restaurant = db_sess.query(Restaurant).filter(Restaurant.id == restaurant).one()
+    try:
+        chosen_restaurant.in_favourite -= 1
+    except TypeError:
+        chosen_restaurant.in_favourite = 0
+    restaurant_owner = db_sess.query(User).filter(User.id == chosen_restaurant.owner).one().user_link
+    tlg_button.url = restaurant_owner
+    describe.callback_data = f"des_{restaurant}_{media_message}_{dm}"
+    rate.callback_data = f"rate_{restaurant}_{media_message}_{dm}"
+    inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                         [fav_button],
+                                         [rate]])
+    context.bot.editMessageText(chat_id=chat, message_id=message, text=text, reply_markup=inl_keyboard)
+    db_sess.commit()
+
+
+def show_full_description(restaurant, message, chat, context, language, message_with_buttons, json_data, user_tgid,
+                          redact=False):
+    restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(restaurant)).one()
+    if restaurant.number_of_scores == 0:
+        if len(restaurant.description) > 100:
+            description = restaurant.description[:100].split()
+            description = ' '.join(description[:len(description) - 1])
+            description_en = restaurant.description_en[:100].split()
+            description_en = ' '.join(description_en[:len(description_en) - 1])
+        else:
+            description = restaurant.description
+            description_en = restaurant.description_en
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                html_long = card_html_without_score_ru.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  working_hours=restaurant.working_hours,
+                                                                  working_days=restaurant.working_days,
+                                                                  average_price=restaurant.average_price)
+            else:
+                html_long = card_html_without_score_en.substitute(name=restaurant.name_en,
+                                                                  description=description_en,
+                                                                  working_hours=restaurant.working_hours,
+                                                                  working_days=restaurant.working_days_en,
+                                                                  average_price=restaurant.average_price)
+        except KeyError:
+            if language == 'ru':
+                html_long = card_html_without_score_ru.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  working_hours=restaurant.working_hours,
+                                                                  working_days=restaurant.working_days,
+                                                                  average_price=restaurant.average_price)
+            else:
+                html_long = card_html_without_score_en.substitute(name=restaurant.name_en,
+                                                                  description=description_en,
+                                                                  working_hours=restaurant.working_hours,
+                                                                  working_days=restaurant.working_days_en,
+                                                                  average_price=restaurant.average_price)
+    else:
+        if len(restaurant.description) > 100:
+            description = restaurant.description[:100].split()
+            description = ' '.join(description[:len(description) - 1])
+            description_en = restaurant.description_en[:100].split()
+            description_en = ' '.join(description_en[:len(description_en) - 1])
+        else:
+            description = restaurant.description
+            description_en = restaurant.description_en
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                html_long = card_html_with_score_ru.substitute(name=restaurant.name,
+                                                               description=description,
+                                                               working_hours=restaurant.working_hours,
+                                                               working_days=restaurant.working_days,
+                                                               average_price=restaurant.average_price,
+                                                               average_score=restaurant.score,
+                                                               number_of_scores=restaurant.number_of_scores)
+            else:
+                html_long = card_html_with_score_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               working_hours=restaurant.working_hours,
+                                                               working_days=restaurant.working_days_en,
+                                                               average_price=restaurant.average_price,
+                                                               average_score=restaurant.score,
+                                                               number_of_scores=restaurant.number_of_scores)
+        except KeyError:
+            if language == 'ru':
+                html_long = card_html_with_score_ru.substitute(name=restaurant.name,
+                                                               description=description,
+                                                               working_hours=restaurant.working_hours,
+                                                               working_days=restaurant.working_days,
+                                                               average_price=restaurant.average_price,
+                                                               average_score=restaurant.score,
+                                                               number_of_scores=restaurant.number_of_scores)
+            else:
+                html_long = card_html_with_score_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               working_hours=restaurant.working_hours,
+                                                               working_days=restaurant.working_days_en,
+                                                               average_price=restaurant.average_price,
+                                                               average_score=restaurant.score,
+                                                               number_of_scores=restaurant.number_of_scores)
+    media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
+                                                                          restaurant.media.split(';'))))
+    media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
+                                                                         restaurant.media.split(';'))))
+    media = list()
+    media.extend(media_vid)
+    media.extend(media_ph)
+    media[0].caption = html_long
+    media[0].parse_mode = 'HTML'
+    user = db_sess.query(User).filter(User.telegram_id == user_tgid).one()
+    user_fav = list(map(int, user.favourite.split(', ')))
+    fav = restaurant.id in user_fav
+    if fav:
+        fav = 'del'
+    else:
+        fav = 'add'
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'min')
+            text = json_data['messages']['ru']['actions']
+            text1 = json_data['messages']['ru']['distance']
+            keyboard = geoposition_keyboard
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'min')
+            text = json_data['messages']['en']['actions']
+            text1 = json_data['messages']['en']['distance']
+            keyboard = geoposition_keyboard_en
+    except KeyError:
+        if language == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'min')
+            text = json_data['messages']['ru']['actions']
+            text1 = json_data['messages']['ru']['distance']
+            keyboard = geoposition_keyboard
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'min')
+            text = json_data['messages']['en']['actions']
+            text1 = json_data['messages']['en']['distance']
+            keyboard = geoposition_keyboard_en
+    restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    tlg_button.url = restaurant_owner
+    rate.callback_data = f"rate_{restaurant.id}_{message}_min"
+    if fav == 'add':
+        fav_button.callback_data = f"addfav_{restaurant.id}_{message}_min"
+    else:
+        fav_button.callback_data = f"delfav_{restaurant.id}_{message}_min"
+
+    describe.callback_data = f"des_{restaurant.id}_{message}_min"
+    inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                         [fav_button],
+                                         [rate]])
+    context.chat_data['place_location'] = restaurant.coordinates
+    context.bot.editMessageMedia(chat_id=chat, message_id=message, media=media[0])
+    context.bot.editMessageText(chat_id=chat, message_id=message_with_buttons.message_id,
+                                text=text, reply_markup=inl_keyboard)
+    if not redact:
+        context.bot.sendMessage(chat_id=chat, text=text1, reply_markup=keyboard)
+
+
+def show_short_description(user_tg, context, rest, message, text_message_id, json_data, chat):
+    user = db_sess.query(User).filter(User.telegram_id == user_tg.id).one()
+    user_fav = list(map(int, user.favourite.split(', ')))
+    fav = int(rest) in user_fav
+    print(user_fav, int(rest), fav)
+    if fav:
+        fav = 'del'
+    else:
+        fav = 'add'
+    restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(rest)).one()
+    if len(restaurant.description) > 100:
+        description = restaurant.description[:100].split()
+        description = ' '.join(description[:len(description) - 1])
+        description_en = restaurant.description_en[:100].split()
+        description_en = ' '.join(description_en[:len(description_en) - 1])
+    else:
+        description = restaurant.description
+        description_en = restaurant.description_en
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
+            text = json_data['messages']['ru']['actions']
+            text1 = json_data['messages']['ru']['back']
+            keyboard = main_menu_keyboard
+            html_short = card_short_html.substitute(name=restaurant.name,
+                                                    description=description,
+                                                    average_price=restaurant.average_price)
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
+            text = json_data['messages']['en']['actions']
+            text1 = json_data['messages']['en']['back']
+            keyboard = main_menu_keyboard_en
+            html_short = card_short_html.substitute(name=restaurant.name_en,
+                                                    description=description_en,
+                                                    average_price=restaurant.average_price)
+    except KeyError:
+        if user_tg.language_code == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
+            text = json_data['messages']['ru']['actions']
+            text1 = json_data['messages']['ru']['back']
+            keyboard = main_menu_keyboard
+            html_short = card_short_html.substitute(name=restaurant.name,
+                                                    description=description,
+                                                    average_price=restaurant.average_price)
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
+            text = json_data['messages']['en']['actions']
+            text1 = json_data['messages']['en']['back']
+            keyboard = main_menu_keyboard_en
+            html_short = card_short_html.substitute(name=restaurant.name_en,
+                                                    description=description_en,
+                                                    average_price=restaurant.average_price)
+    media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
+                                                                          restaurant.media.split(';'))))
+    media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
+                                                                         restaurant.media.split(';'))))
+    media = list()
+    media.extend(media_vid)
+    media.extend(media_ph)
+    media[0].caption = html_short
+    media[0].parse_mode = 'HTML'
+    tlg_button.url = user.user_link
+    rate.callback_data = f"rate_{restaurant.id}_{message}_des"
+    if fav == 'add':
+        fav_button.callback_data = f"addfav_{restaurant.id}_{message}_des"
+    else:
+        fav_button.callback_data = f"delfav_{restaurant.id}_{message}_des"
+
+    describe.callback_data = f"des_{restaurant.id}_{message}_des"
+    inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                         [fav_button],
+                                         [rate]])
+    context.bot.editMessageMedia(chat_id=chat, message_id=message, media=media[0])
+    context.bot.editMessageText(chat_id=chat, message_id=text_message_id,
+                                text=text, reply_markup=inl_keyboard)
+    context.bot.sendMessage(chat_id=chat, text=text1, reply_markup=keyboard)
 
 
 def start(update, context):
     in_blacklist = db_sess.query(Blacklist).filter(Blacklist.telegram_id == update.message.from_user.id).all()
     if not in_blacklist:
         user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).all()
-        markup = main_menu_keyboard
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                markup = main_menu_keyboard
+            else:
+                markup = main_menu_keyboard_en
+        except KeyError:
+            if update.message.from_user.language_code == 'ru':
+                markup = main_menu_keyboard
+            else:
+                markup = main_menu_keyboard_en
+
         if not user:
             new_user = User(
                 telegram_id=update.message.from_user.id,
@@ -110,47 +423,504 @@ def start(update, context):
             )
             db_sess.add(new_user)
             db_sess.commit()
-        else:
-            if user[0].is_vip:
-                markup = main_menu_keyboard
         update.message.reply_text(get_message_from_json(update.message.from_user.language_code, context, "greeting"),
                                   reply_markup=markup)
 
 
+def show_favourite(user_tg, context):
+    user = db_sess.query(User).filter(User.telegram_id == user_tg.id).one()
+    language = user_tg.language_code
+    favourite = list(map(int, user.favourite.split(', ')))
+    chosen_restaurants = db_sess.query(Restaurant).filter(Restaurant.id.in_(favourite)).all()
+    to_send = list()
+    for restaurant in chosen_restaurants:
+        d = dict()
+
+        if len(restaurant.description) > 100:
+            description = restaurant.description[:100].split()
+            description = ' '.join(description[:len(description) - 1])
+            description_en = restaurant.description_en[:100].split()
+            description_en = ' '.join(description_en[:len(description_en) - 1])
+        else:
+            description = restaurant.description
+            description_en = restaurant.description_en
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price)
+            else:
+                html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                           description=description_en,
+                                                           average_price=restaurant.average_price)
+        except KeyError:
+            if language == 'ru':
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price)
+            else:
+                html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                           description=description_en,
+                                                           average_price=restaurant.average_price)
+        media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
+                                                                              restaurant.media.split(';'))))
+        media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
+                                                                             restaurant.media.split(';'))))
+        media = list()
+        media.extend(media_vid)
+        media.extend(media_ph)
+        media[0].caption = html_short
+        media[0].parse_mode = 'HTML'
+        d['id'] = restaurant.id
+        d['html_short'] = html_short
+        d['media'] = media
+        d['favourite'] = True
+        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        d['vip_owner'] = restaurant.vip_owner
+        to_send.append(d)
+
+    return to_send
+
+
 def text_handler(update, context):
+    with open('json/messages.json') as json_messages:
+        json_messages_data = json.load(json_messages)
     in_blacklist = db_sess.query(Blacklist).filter(Blacklist.telegram_id == update.message.from_user.id).all()
     if not in_blacklist:
-        if update.message.text == 'Каталог 📖':
-            restaurant_types = list(map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
-                                        db_sess.query(RestaurantTypes).all()))
+        user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one()
+        vip_user = user.is_vip
+        if update.message.text in ('Каталог 📖', 'Catalog 📖'):
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    if vip_user:
+                        restaurant_types = list(
+                            map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
+                                db_sess.query(RestaurantTypes).all()))
+                    else:
+                        restaurant_types = list(
+                            map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0).all()))
+                    text = json_messages_data['messages']['ru']['places']
+                else:
+                    if vip_user:
+                        restaurant_types = list(
+                            map(lambda x: InlineKeyboardButton(text=x.type_name_en, callback_data=f"rt_{x.id}"),
+                                db_sess.query(RestaurantTypes).all()))
+                    else:
+                        restaurant_types = list(
+                            map(lambda x: InlineKeyboardButton(text=x.type_name_en, callback_data=f"rt_{x.id}"),
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0).all()))
+                    text = json_messages_data['messages']['en']['places']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    if vip_user:
+                        restaurant_types = list(
+                            map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
+                                db_sess.query(RestaurantTypes).all()))
+                    else:
+                        restaurant_types = list(
+                            map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0).all()))
+                    text = json_messages_data['messages']['ru']['places']
+                else:
+                    if vip_user:
+                        restaurant_types = list(
+                            map(lambda x: InlineKeyboardButton(text=x.type_name_en, callback_data=f"rt_{x.id}"),
+                                db_sess.query(RestaurantTypes).all()))
+                    else:
+                        restaurant_types = list(
+                            map(lambda x: InlineKeyboardButton(text=x.type_name_en, callback_data=f"rt_{x.id}"),
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0).all()))
+                    text = json_messages_data['messages']['en']['places']
+
             buttons = InlineKeyboardMarkup(
                 [restaurant_types[2 * i:2 * (i + 1)] for i in range(len(restaurant_types) // 2 + 1)])
-            update.message.reply_text('Заведения по категориям:', reply_markup=buttons)
+            update.message.reply_text(text, reply_markup=buttons)
+
+        elif update.message.text == '🔙':
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    update.message.reply_text(json_messages_data['messages']['ru']['back'],
+                                              reply_markup=main_menu_keyboard)
+                elif user_language == 'en':
+                    update.message.reply_text(json_messages_data['messages']['en']['back'],
+                                              reply_markup=main_menu_keyboard_en)
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    update.message.reply_text(json_messages_data['messages']['ru']['back'],
+                                              reply_markup=main_menu_keyboard)
+                else:
+                    update.message.reply_text(json_messages_data['messages']['en']['back'],
+                                              reply_markup=main_menu_keyboard_en)
+        elif update.message.text in ('Избранное ❤️', 'Favourite ❤️'):
+            to_show = show_favourite(update.message.from_user, context)
+            for elem in to_show:
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                        text = json_messages_data['messages']['ru']['actions']
+                    else:
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                        text = json_messages_data['messages']['en']['actions']
+                except KeyError:
+                    if update.message.from_user.language_code == 'ru':
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                        text = json_messages_data['messages']['ru']['actions']
+                    else:
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                        text = json_messages_data['messages']['en']['actions']
+                fav_button_call = f"delfav_{elem['id']}"
+                media_message = context.bot.send_media_group(update.message.from_user.id,
+                                                             media=elem['media'])
+                tlg_button.url = elem['owner_link']
+                rate.callback_data = f"rate_{elem['id']}_{media_message[0].message_id}_des"
+                fav_button.callback_data = fav_button_call + f'_{media_message[0].message_id}_des'
+                describe.callback_data = f"des_{elem['id']}_{media_message[0].message_id}_des"
+                inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                                     [fav_button],
+                                                     [rate]])
+                context.bot.sendMessage(update.message.from_user.id, text=text, reply_markup=inl_keyboard)
+            if not bool(to_show):
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        text = json_messages_data['messages']['ru']['favourite_empty']
+                    else:
+                        text = json_messages_data['messages']['en']['favourite_empty']
+                except KeyError:
+                    if update.message.from_user.language_code == 'ru':
+                        text = json_messages_data['messages']['ru']['favourite_empty']
+                    else:
+                        text = json_messages_data['messages']['en']['favourite_empty']
+                update.message.reply_text(text)
+        elif update.message.text in ('Личный кабинет 👤', 'Personal account 👤'):
+            is_vip = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one().is_vip
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['personal_account']
+                    if is_vip:
+                        markup = personal_account_vip_ru
+                    else:
+                        markup = personal_account_default_ru
+                else:
+                    text = json_messages_data['messages']['en']['personal_account']
+                    if is_vip:
+                        markup = personal_account_vip_en
+                    else:
+                        markup = personal_account_default_en
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['personal_account']
+                    if is_vip:
+                        markup = personal_account_vip_ru
+                    else:
+                        markup = personal_account_default_ru
+                else:
+                    text = json_messages_data['messages']['en']['personal_account']
+                    if is_vip:
+                        markup = personal_account_vip_en
+                    else:
+                        markup = personal_account_default_en
+            update.message.reply_text(text, reply_markup=markup)
+        elif update.message.text == 'ENG 🇬🇧':
+            context.chat_data['language'] = 'en'
+            is_vip = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one().is_vip
+            if is_vip:
+                update.message.reply_text(
+                    get_message_from_json(update.message.from_user.language_code, context, "greeting"),
+                    reply_markup=personal_account_vip_en)
+            else:
+                update.message.reply_text(
+                    get_message_from_json(update.message.from_user.language_code, context, "greeting"),
+                    reply_markup=personal_account_default_en)
+        elif update.message.text == 'RUS 🇷🇺':
+            context.chat_data['language'] = 'ru'
+            is_vip = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one().is_vip
+            if is_vip:
+                update.message.reply_text(
+                    get_message_from_json(update.message.from_user.language_code, context, "greeting"),
+                    reply_markup=personal_account_vip_ru)
+            else:
+                update.message.reply_text(
+                    get_message_from_json(update.message.from_user.language_code, context, "greeting"),
+                    reply_markup=personal_account_default_ru)
+        elif update.message.text in ('Инфо ℹ️', 'Info ℹ️'):
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['info']
+                    keyboard = info_keyboard_ru
+                else:
+                    text = json_messages_data['messages']['en']['info']
+                    keyboard = info_keyboard_en
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['info']
+                    keyboard = info_keyboard_ru
+                else:
+                    text = json_messages_data['messages']['en']['info']
+                    keyboard = info_keyboard_en
+            update.message.reply_text(text, reply_markup=keyboard)
+
+
+def location_hand(update, context):
+    with open('json/messages.json') as json_messages:
+        json_messages_data = json.load(json_messages)
+    user_location = update.message.location
+    user_location = user_location['latitude'], user_location['longitude']
+    restaurant_location = tuple(map(lambda x: float(x), context.chat_data['place_location'].split(', ')))
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            message = json_messages_data['messages']['ru']['distance_to_object']
+        else:
+            message = json_messages_data['messages']['en']['distance_to_object']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            message = json_messages_data['messages']['ru']['distance_to_object']
+        else:
+            message = json_messages_data['messages']['en']['distance_to_object']
+    distance = int(lonlat_distance(user_location, restaurant_location)) / 1000
+    update.message.reply_text(text=f"{message}{distance} km")
+
+
+def rate_restaurant_short(user_tg, context, rest, message, text_message_id, json_data, chat):
+    restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(rest)).one()
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_data['messages']['ru']['rate']
+        else:
+            text = json_data['messages']['en']['rate']
+    except KeyError:
+        if user_tg.language_code == 'ru':
+            text = json_data['messages']['ru']['rate']
+        else:
+            text = json_data['messages']['en']['tate']
+    rate_keybrd = rate_keyboard
+    rate_keybrd[0][0].callback_data = f"rated_{restaurant.id}_{message}_des_1"
+    rate_keybrd[1][0].callback_data = f"rated_{restaurant.id}_{message}_des_2"
+    rate_keybrd[2][0].callback_data = f"rated_{restaurant.id}_{message}_des_3"
+    rate_keybrd[3][0].callback_data = f"rated_{restaurant.id}_{message}_des_4"
+    rate_keybrd[4][0].callback_data = f"rated_{restaurant.id}_{message}_des_5"
+    inl_keyboard = InlineKeyboardMarkup(rate_keybrd)
+    context.bot.editMessageText(chat_id=chat, message_id=text_message_id,
+                                text=text, reply_markup=inl_keyboard)
+
+
+def rate_restaurant_long(restaurant, message, chat, context, language, message_with_buttons, json_data):
+    restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(restaurant)).one()
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_data['messages']['ru']['rate']
+        else:
+            text = json_data['messages']['en']['rate']
+    except KeyError:
+        if language == 'ru':
+            text = json_data['messages']['ru']['rate']
+        else:
+            text = json_data['messages']['en']['tate']
+    rate_keybrd = rate_keyboard
+    rate_keybrd[0][0].callback_data = f"rated_{restaurant.id}_{message}_min_1"
+    rate_keybrd[1][0].callback_data = f"rated_{restaurant.id}_{message}_min_2"
+    rate_keybrd[2][0].callback_data = f"rated_{restaurant.id}_{message}_min_3"
+    rate_keybrd[3][0].callback_data = f"rated_{restaurant.id}_{message}_min_4"
+    rate_keybrd[4][0].callback_data = f"rated_{restaurant.id}_{message}_min_5"
+    inl_keyboard = InlineKeyboardMarkup(rate_keybrd)
+    try:
+        context.bot.editMessageText(chat_id=chat, message_id=message_with_buttons.message_id,
+                                    text=text, reply_markup=inl_keyboard)
+    except telegram.error.BadRequest:
+        context.bot.editMessageText(chat_id=chat, message_id=message_with_buttons.message_id,
+                                    text=text + '.', reply_markup=inl_keyboard)
+
+
+def change_inline(chat, message_id, user_tg, context, json_data, rest, message):
+    user = db_sess.query(User).filter(User.telegram_id == user_tg.id).one()
+    user_fav = list(map(int, user.favourite.split(', ')))
+    fav = int(rest) in user_fav
+    print(user_fav, int(rest), fav)
+    if fav:
+        fav = 'del'
+    else:
+        fav = 'add'
+    restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(rest)).one()
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
+            text = json_data['messages']['ru']['actions']
+
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
+            text = json_data['messages']['en']['actions']
+    except KeyError:
+        if user_tg.language_code == 'ru':
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
+            text = json_data['messages']['ru']['actions']
+        else:
+            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
+            text = json_data['messages']['en']['actions']
+    tlg_button.url = user.user_link
+    rate.callback_data = f"rate_{restaurant.id}_{message}_des"
+    if fav == 'add':
+        fav_button.callback_data = f"addfav_{restaurant.id}_{message}_des"
+    else:
+        fav_button.callback_data = f"delfav_{restaurant.id}_{message}_des"
+
+    describe.callback_data = f"des_{restaurant.id}_{message}_des"
+    inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                         [fav_button],
+                                         [rate]])
+    context.bot.editMessageText(chat_id=chat, message_id=message_id,
+                                text=text, reply_markup=inl_keyboard)
 
 
 def callback_hand(update, context):
     in_blacklist = db_sess.query(Blacklist).filter(Blacklist.telegram_id == update.callback_query.from_user.id).all()
     if not in_blacklist:
+        with open('json/messages.json') as json_messages:
+            json_messages_data = json.load(json_messages)
         data = update.callback_query.data.split('_')
         if data[0] == 'rt':
-            rests = choose_restaurant_type(data, update.callback_query.from_user.id)
+            rests = choose_restaurant_type(data, update.callback_query.from_user.id,
+                                           update.callback_query.from_user, context)
+            vip_rests = list(filter(lambda x: x['vip_owner'], rests))
+            not_vip_rests = list(filter(lambda x: not x['vip_owner'], rests))
+            rests = []
+            rests.extend(vip_rests)
+            rests.extend(not_vip_rests)
             for elem in rests:
                 print(elem)
                 if elem['favourite']:
-                    fav_button = InlineKeyboardButton(text='Удалить из избранного 💔',
-                                                      callback_data=
-                                                      f"delfav_{update.callback_query.from_user.id}_{elem['id']}")
+                    try:
+                        user_language = context.chat_data['language']
+                        if user_language == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                    except KeyError:
+                        if update.callback_query.from_user.language_code == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                    fav_button_call = f"delfav_{elem['id']}"
+
                 else:
-                    fav_button = InlineKeyboardButton(text='Добавить в избранное ❤️',
-                                                      callback_data=
-                                                      f"addfav_{update.callback_query.from_user.id}_{elem['id']}")
-                tlg_button = InlineKeyboardButton(text='Связаться ☎️', url=elem['owner_link'])
-                describe = InlineKeyboardButton(text='Подробнее', callback_data=f"des_{elem['id']}")
-                inl_keyboard = InlineKeyboardMarkup([[fav_button, tlg_button],
-                                                     [describe]])
-                context.bot.send_media_group(update.callback_query.from_user.id,
-                                             media=elem['media'], )
-                context.bot.sendMessage(update.callback_query.from_user.id, text='Действия:', reply_markup=inl_keyboard)
+                    try:
+                        user_language = context.chat_data['language']
+                        if user_language == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                    except KeyError:
+                        if update.callback_query.from_user.language_code == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                    fav_button_call = f"addfav_{elem['id']}"
+                print(type(elem['media']))
+                media_message = context.bot.send_media_group(update.callback_query.from_user.id,
+                                                             media=elem['media'])
+                tlg_button.url = elem['owner_link']
+                rate.callback_data = f"rate_{elem['id']}_{media_message[0].message_id}_des"
+                fav_button.callback_data = fav_button_call + f'_{media_message[0].message_id}_des'
+                describe.callback_data = f"des_{elem['id']}_{media_message[0].message_id}_des"
+                inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                                     [fav_button],
+                                                     [rate]])
+                context.bot.sendMessage(update.callback_query.from_user.id, text=text, reply_markup=inl_keyboard)
+        elif data[0] == 'addfav':
+            add_to_favourite(update.callback_query.from_user, data[1], update.callback_query.message.message_id,
+                             update.callback_query.message.chat_id, context, data[2], json_messages_data, data[3])
+            print(db_sess.query(User).filter(User.telegram_id == update.callback_query.from_user.id).one().favourite)
+        elif data[0] == 'delfav':
+            del_from_favourite(update.callback_query.from_user, data[1], update.callback_query.message.message_id,
+                               update.callback_query.message.chat_id, context, data[2], json_messages_data, data[3])
 
+            print(db_sess.query(User).filter(User.telegram_id == update.callback_query.from_user.id).one().favourite)
+        elif data[0] == 'des' and data[3] == 'des':
+            show_full_description(data[1], data[2],
+                                  update.callback_query.message.chat_id,
+                                  context, update.callback_query.from_user.language_code,
+                                  update.callback_query.message, json_messages_data, update.callback_query.from_user.id)
+        elif data[0] == 'des' and data[3] == 'min':
+            show_short_description(update.callback_query.from_user, context, data[1], data[2],
+                                   update.callback_query.message.message_id, json_messages_data,
+                                   update.callback_query.message.chat_id)
+        elif data[0] == 'rate':
+            if data[3] == 'des':
+                rate_restaurant_short(update.callback_query.from_user, context, data[1], data[2],
+                                      update.callback_query.message.message_id, json_messages_data,
+                                      update.callback_query.message.chat_id)
+            elif data[3] == 'min':
+                rate_restaurant_long(data[1], data[2],
+                                     update.callback_query.message.chat_id,
+                                     context, update.callback_query.from_user.language_code,
+                                     update.callback_query.message, json_messages_data)
+        elif data[0] == 'rated':
+            rest = db_sess.query(Restaurant).filter(Restaurant.id == int(data[1])).one()
+            user = db_sess.query(User).filter(User.telegram_id == update.callback_query.from_user.id).one()
+            score_exists = db_sess.query(Scores).filter(Scores.place == rest.id,
+                                                        Scores.user == user.id).all()
+            print(bool(score_exists))
+            if not bool(score_exists):
+                try:
+                    rest.number_of_scores += 1
+                except TypeError:
+                    rest.number_of_scores = 1
+                try:
+                    rest.total_score += int(data[4])
+                except TypeError:
+                    rest.total_score = int(data[4])
 
-
+                rest.score = round(rest.total_score / rest.number_of_scores, 1)
+                score = Scores(place=rest.id,
+                               user=db_sess.query(User).filter(
+                                   User.telegram_id == update.callback_query.from_user.id).one().id,
+                               score=int(data[4]))
+                db_sess.add(score)
+                db_sess.commit()
+            else:
+                rest.total_score -= score_exists[0].score
+                rest.total_score += int(data[4])
+                score_exists[0].score = int(data[4])
+                rest.score = round(rest.total_score / rest.number_of_scores, 1)
+                db_sess.commit()
+            if data[3] == 'des':
+                change_inline(update.callback_query.message.chat_id,
+                              update.callback_query.message.message_id, update.callback_query.from_user,
+                              context, json_messages_data, data[1], data[2])
+            elif data[3] == 'min':
+                show_full_description(data[1], data[2],
+                                      update.callback_query.message.chat_id,
+                                      context, update.callback_query.from_user.language_code,
+                                      update.callback_query.message, json_messages_data,
+                                      update.callback_query.from_user.id, redact=True)
+        elif data[0] == 'about':
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['about']
+                else:
+                    text = json_messages_data['messages']['en']['about']
+            except KeyError:
+                if update.callback_query.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['about']
+                else:
+                    text = json_messages_data['messages']['en']['about']
+            context.bot.sendMessage(update.callback_query.message.chat_id, text)

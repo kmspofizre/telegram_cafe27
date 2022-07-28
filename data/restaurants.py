@@ -22,12 +22,15 @@ class Restaurant(SqlAlchemyBase):
     media = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     score = sqlalchemy.Column(sqlalchemy.REAL, nullable=True)
     average_price = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
-    type = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey('restaurant_types.id'), nullable=False)
+    type = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     owner = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey('users.id'), nullable=False)
     confirmed = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False)
-    number_of_scores = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    number_of_scores = sqlalchemy.Column(sqlalchemy.Integer, nullable=True, default=0)
     total_score = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    name_en = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
+    description_en = sqlalchemy.Column(sqlalchemy.TEXT, nullable=False)
+    address_en = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
+    working_days_en = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
 
-    type_id = orm.relation('RestaurantTypes')
     owner_id = orm.relation('User')
 
