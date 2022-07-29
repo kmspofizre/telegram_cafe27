@@ -23,7 +23,21 @@
            "VIP_status": "VIP status",
            "successful_payment": "You paid",
            "already_VIP": "You already have VIP status",
-           "show_more": "Show more"
+           "show_more": "Show more",
+           "conversation_1": "Let's add a restaurant. Enter the name of the restaurant",
+           "restaurant_exists": "You already have one restaurant. To add more you have to buy VIP status.",
+           "conversation_2": "Enter restaurant description",
+           "conversation_3": "Enter restaurant address",
+           "conversation_4": "Enter restaurant phone number",
+           "conversation_5": "Enter the restaurant's working hours",
+           "conversation_6": "Enter the average check of your restaurant in rubles (number only)",
+           "conversation_7": "List, separated by commas with spaces, the categories to which your institution belongs. For example: 1, 2",
+           "conversation_8": "Send the necessary media files (photos and videos), but no more than 9",
+           "end_of_conversation": "Thank you, we have received all the necessary information. Wait for the moderators to confirm your application",
+           "try_again": "Incorrect input format try again",
+           "anything": "Send any message to complete the addition of the restaurant",
+           "process_stopped": "The process of adding a restaurant has been interrupted",
+           "add_restaurant": "To start adding a restaurant, enter the command /conversationstart"
          },
          "ru": {
            "greeting": "Здравствуйте",
@@ -47,10 +61,32 @@
            "VIP_status": "VIP статус",
            "successful_payment": "Вы заплатили",
            "already_VIP": "Вы уже владеете VIP статусом",
-           "show_more": "Показать больше"
+           "show_more": "Показать больше",
+           "conversation_1": "Давайте добвим новый ресторан. Какое у него название?",
+           "restaurant_exists": "У Вас уже есть ресторан. Чтобы добавить еще, купите VIP статус.",
+           "conversation_2": "Введите описание ресторана",
+           "conversation_3": "Введите адрес ресторана",
+           "conversation_4": "Введите номер телефона ресторана",
+           "conversation_5": "Введите режим работы ресторана",
+           "conversation_6": "Введите средний чек Вашего ресторана в рублях (только число)",
+           "conversation_7": "Перечислите через запятые с пробелами те категории, к которым относится Ваше заведение. Например: 1, 2",
+           "conversation_8": "Отправьте необходимые медиафайлы (фото и видео), но не больше 8",
+           "end_of_conversation": "Спасибо, мы получили всю необходимую информацию. Ожидайте подтверждения Вашей заявки модераторами",
+           "try_again": "Неправильный формат ввода, попробуйте еще раз",
+           "anything": "Отправьте любое сообщение, чтобы завершить добавление ресторана",
+           "process_stopped": "Процесс добавления ресторана прерван",
+           "add_restaurant": "Чтобы начать добавление ресторана, введите команду /conversationstart"
          }
       },
       "payments": {
         "VIP": 50000
+      },
+      "API_keys":
+      {
+        "translator": "AQVNxYvS9dmmYoEfaGv-wVzilJ4nNTD4HYC3eYw2",
+        "organization_search": "51d82b8b-a387-4c06-984c-63fe4963b74c",
+        "folder_id": "b1gtvtblgr8vr0aplq5u",
+        "search_api_server": "https://search-maps.yandex.ru/v1/",
+        "translate_api_server": "https://translate.api.cloud.yandex.net/translate/v2/translate"
       }
 }

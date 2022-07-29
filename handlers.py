@@ -1,5 +1,5 @@
 import telegram.error
-from telegram.ext import CommandHandler, MessageHandler, Filters, ShippingQueryHandler, PreCheckoutQueryHandler
+from telegram.ext import CommandHandler, ConversationHandler, MessageHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputMediaVideo
 import json
 from data import db_session
@@ -21,6 +21,8 @@ from templates import card_html_with_score_ru, card_html_without_score_ru, \
     card_short_html, card_html_with_score_en, card_html_without_score_en, card_short_html_en
 from distance import lonlat_distance
 from payment import vip_price
+import requests
+from images.file_saver import file_saver
 
 db_session.global_init("db/cafe27.db")
 db_sess = db_session.create_session()
@@ -28,7 +30,17 @@ db_sess = db_session.create_session()
 vid_ext = tuple('.mp4')
 ph_ext = tuple(['.jpg', '.jpeg', '.png'])
 
+with open('json/messages.json') as json_d:
+    json_keys_data = json.load(json_d)
+
 P_TOKEN = "381764678:TEST:40489"
+API_KEY = json_keys_data['API_keys']['translator']
+folder_id = json_keys_data['API_keys']['folder_id']
+organization_api = json_keys_data['API_keys']['organization_search']
+search_api_server = json_keys_data['API_keys']['search_api_server']
+translate_api_server = json_keys_data['API_keys']["translate_api_server"]
+
+target_language = 'ru'
 
 
 def get_message_from_json(language, context, message_type):
@@ -186,7 +198,7 @@ def del_from_favourite(user_tg, restaurant, message, chat, context, media_messag
 def show_full_description(restaurant, message, chat, context, language, message_with_buttons, json_data, user_tgid,
                           redact=False):
     restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(restaurant)).one()
-    if restaurant.number_of_scores == 0 or restaurant.number_of_scores == None:
+    if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
         description = restaurant.description
         description_en = restaurant.description_en
         try:
@@ -195,26 +207,22 @@ def show_full_description(restaurant, message, chat, context, language, message_
                 html_long = card_html_without_score_ru.substitute(name=restaurant.name,
                                                                   description=description,
                                                                   working_hours=restaurant.working_hours,
-                                                                  working_days=restaurant.working_days,
                                                                   average_price=restaurant.average_price)
             else:
                 html_long = card_html_without_score_en.substitute(name=restaurant.name_en,
                                                                   description=description_en,
-                                                                  working_hours=restaurant.working_hours,
-                                                                  working_days=restaurant.working_days_en,
+                                                                  working_hours=restaurant.working_hours_en,
                                                                   average_price=restaurant.average_price)
         except KeyError:
             if language == 'ru':
                 html_long = card_html_without_score_ru.substitute(name=restaurant.name,
                                                                   description=description,
                                                                   working_hours=restaurant.working_hours,
-                                                                  working_days=restaurant.working_days,
                                                                   average_price=restaurant.average_price)
             else:
                 html_long = card_html_without_score_en.substitute(name=restaurant.name_en,
                                                                   description=description_en,
-                                                                  working_hours=restaurant.working_hours,
-                                                                  working_days=restaurant.working_days_en,
+                                                                  working_hours=restaurant.working_hours_en,
                                                                   average_price=restaurant.average_price)
     else:
         description = restaurant.description
@@ -225,15 +233,13 @@ def show_full_description(restaurant, message, chat, context, language, message_
                 html_long = card_html_with_score_ru.substitute(name=restaurant.name,
                                                                description=description,
                                                                working_hours=restaurant.working_hours,
-                                                               working_days=restaurant.working_days,
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
                                                                number_of_scores=restaurant.number_of_scores)
             else:
                 html_long = card_html_with_score_en.substitute(name=restaurant.name_en,
                                                                description=description_en,
-                                                               working_hours=restaurant.working_hours,
-                                                               working_days=restaurant.working_days_en,
+                                                               working_hours=restaurant.working_hours_en,
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
                                                                number_of_scores=restaurant.number_of_scores)
@@ -242,15 +248,13 @@ def show_full_description(restaurant, message, chat, context, language, message_
                 html_long = card_html_with_score_ru.substitute(name=restaurant.name,
                                                                description=description,
                                                                working_hours=restaurant.working_hours,
-                                                               working_days=restaurant.working_days,
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
                                                                number_of_scores=restaurant.number_of_scores)
             else:
                 html_long = card_html_with_score_en.substitute(name=restaurant.name_en,
                                                                description=description_en,
-                                                               working_hours=restaurant.working_hours,
-                                                               working_days=restaurant.working_days_en,
+                                                               working_hours=restaurant.working_hours_en,
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
                                                                number_of_scores=restaurant.number_of_scores)
@@ -695,6 +699,19 @@ def text_handler(update, context):
                 else:
                     text = json_messages_data['messages']['en']['VIP_advantage']
             update.message.reply_text(text)
+        elif update.message.text in ('Добавить заведение ➕', 'Add restaurant ➕'):
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['add_restaurant']
+                else:
+                    text = json_messages_data['messages']['en']['add_restaurant']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['add_restaurant']
+                else:
+                    text = json_messages_data['messages']['en']['add_restaurant']
+            update.message.reply_text(text)
 
 
 def location_hand(update, context):
@@ -1064,6 +1081,10 @@ def successful_payment(update, context):
                               f'{update.message.successful_payment.currency}', reply_markup=keyboard)
     user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one()
     user.is_vip = True
+    rests = db_sess.query(Restaurant).filter(Restaurant.owner == user.id).all()
+    for elem in rests:
+        elem.vip_owner = True
+        db_sess.commit()
     new_payment = Payment(
         payment_name='VIP status',
         user=user.id,
@@ -1074,3 +1095,376 @@ def successful_payment(update, context):
     db_sess.add(new_payment)
     context.bot.deleteMessage(update.message.chat_id, context.chat_data['pay_message'])
     db_sess.commit()
+
+
+def conversation_start(update, context):
+    print('aaaa')
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one()
+    if user.is_vip:
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                text = json_messages_data['messages']['ru']['conversation_1']
+            else:
+                text = json_messages_data['messages']['en']['conversation_1']
+        except KeyError:
+            if update.message.from_user.language_code == 'ru':
+                text = json_messages_data['messages']['ru']['conversation_1']
+            else:
+                text = json_messages_data['messages']['en']['conversation_1']
+        context.chat_data['new_rest'] = {}
+        context.bot.sendMessage(update.message.chat_id, text)
+        return 1
+    else:
+        rest_exists = db_sess.query(Restaurant).filter(Restaurant.owner == user.id).all()
+        if not bool(rest_exists):
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['conversation_1']
+                else:
+                    text = json_messages_data['messages']['en']['conversation_1']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['conversation_1']
+                else:
+                    text = json_messages_data['messages']['en']['conversation_1']
+            context.chat_data['new_rest'] = {}
+            context.bot.sendMessage(update.message.chat_id, text)
+            return 1
+        else:
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['restaurant_exists']
+                else:
+                    text = json_messages_data['messages']['en']['restaurant_exists']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['restaurant_exists']
+                else:
+                    text = json_messages_data['messages']['en']['restaurant_exists']
+            context.bot.sendMessage(update.message.chat_id, text)
+            return ConversationHandler.END
+
+
+def first_response(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    context.chat_data['new_rest']['end'] = False
+    context.chat_data['new_rest']['images'] = []
+    context.chat_data['new_rest']['name'] = update.message.text
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_2']
+        else:
+            text = json_messages_data['messages']['en']['conversation_2']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_2']
+        else:
+            text = json_messages_data['messages']['en']['conversation_2']
+    update.message.reply_text(text)
+    return 2
+
+
+def second_response(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    context.chat_data['new_rest']['description'] = update.message.text
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_3']
+        else:
+            text = json_messages_data['messages']['en']['conversation_3']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_3']
+        else:
+            text = json_messages_data['messages']['en']['conversation_3']
+    update.message.reply_text(text)
+    return 3
+
+
+def third_response(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    context.chat_data['new_rest']['address'] = update.message.text
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_4']
+        else:
+            text = json_messages_data['messages']['en']['conversation_4']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_4']
+        else:
+            text = json_messages_data['messages']['en']['conversation_4']
+    update.message.reply_text(text)
+    return 4
+
+
+def fourth_response(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    context.chat_data['new_rest']['phone'] = update.message.text
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_5']
+        else:
+            text = json_messages_data['messages']['en']['conversation_5']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_5']
+        else:
+            text = json_messages_data['messages']['en']['conversation_5']
+    update.message.reply_text(text)
+    return 5
+
+
+def fifth_response(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    context.chat_data['new_rest']['working_hours'] = update.message.text
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_6']
+        else:
+            text = json_messages_data['messages']['en']['conversation_6']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_6']
+        else:
+            text = json_messages_data['messages']['en']['conversation_6']
+    update.message.reply_text(text)
+    return 6
+
+
+def sixth_response(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    try:
+        context.chat_data['new_rest']['average_amount'] = int(update.message.text)
+    except TypeError:
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                text = json_messages_data['messages']['ru']['try_again']
+            else:
+                text = json_messages_data['messages']['en']['try_again']
+        except KeyError:
+            if update.message.from_user.language_code == 'ru':
+                text = json_messages_data['messages']['ru']['try_again']
+            else:
+                text = json_messages_data['messages']['en']['try_again']
+        update.message.reply_text(text)
+        return 5
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_7']
+            lan = 'ru'
+        else:
+            text = json_messages_data['messages']['en']['conversation_7']
+            lan = 'en'
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_7']
+            lan = 'ru'
+        else:
+            text = json_messages_data['messages']['en']['conversation_7']
+            lan = 'en'
+    text1 = ''
+    rests = db_sess.query(RestaurantTypes).all()
+    if lan == 'ru':
+        for i in range(len(rests)):
+            text1 += f"{i + 1}) {rests[i].type_name}\n"
+    else:
+        for i in range(len(rests)):
+            text1 += f"{i + 1}) {rests[i].type_name_en}\n"
+    update.message.reply_text(f'{text}\n{text1}')
+    return 7
+
+
+def seventh_response(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    context.chat_data['new_rest']['types'] = update.message.text
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_8']
+        else:
+            text = json_messages_data['messages']['en']['conversation_8']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['conversation_8']
+        else:
+            text = json_messages_data['messages']['en']['conversation_8']
+    update.message.reply_text(text)
+    return 8
+
+
+def eighth_response(update, context):
+    number_of_attachments = update.message.effective_attachment // 4
+
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['anything']
+        else:
+            text = json_messages_data['messages']['en']['anything']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['anything']
+        else:
+            text = json_messages_data['messages']['en']['anything']
+    file = context.bot.get_file(update.message.photo[-1].file_id)
+    context.chat_data['new_rest']['images'].append(f"images/{file_saver(file)}")
+    if not context.chat_data['new_rest']['end']:
+        update.message.reply_text(text)
+        context.chat_data['new_rest']['end'] = True
+        context.chat_data['new_rest']['at_number'] = 1
+    else:
+        context.chat_data['new_rest']['at_number'] += 1
+    if context.chat_data['new_rest']['at_number'] == number_of_attachments:
+        return 9
+
+
+def ninth_response(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    context.chat_data['new_rest']['images'] = context.chat_data['new_rest']['images'][:8]
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['end_of_conversation']
+        else:
+            text = json_messages_data['messages']['en']['end_of_conversation']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['end_of_conversation']
+        else:
+            text = json_messages_data['messages']['en']['end_of_conversation']
+    cur_user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one()
+    update.message.reply_text(text)
+    search_params = {
+        "apikey": organization_api,
+        "text": f"{context.chat_data['new_rest']['name']} {context.chat_data['new_rest']['address']}",
+        "lang": "ru_RU",
+        "type": "biz",
+        "results": '1'
+    }
+
+    rest_response = requests.get(search_api_server, params=search_params).json()
+    try:
+        address = rest_response['features'][0]['properties']['CompanyMetaData']['address']
+    except (KeyError, IndexError):
+        address = context.chat_data['new_rest']['address']
+    try:
+        working_hours = rest_response['features'][0]['properties']['CompanyMetaData']['Hours']['text']
+    except (KeyError, IndexError):
+        working_hours = context.chat_data['new_rest']['working_hours']
+    try:
+        phone = rest_response['features'][0]['properties']['CompanyMetaData']['Phones'][0]['formatted']
+    except (KeyError, IndexError):
+        phone = context.chat_data['new_rest']['phone']
+    try:
+        name = rest_response['features'][0]['properties']['name']
+    except (KeyError, IndexError):
+        name = context.chat_data['new_rest']['name']
+    coordinates = ', '.join([rest_response['features'][0]['geometry']['coordinates'][1],
+                             rest_response['features'][0]['geometry']['coordinates'][0]])
+    texts = [name,
+             context.chat_data['new_rest']['description'],
+             address,
+             working_hours,
+             ]
+    body = {
+        "targetLanguageCode": target_language,
+        "texts": texts,
+        "folderId": folder_id,
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Api-Key {0}".format(API_KEY)
+    }
+    response = requests.post(translate_api_server,
+                             json=body,
+                             headers=headers
+                             ).json()
+    name_en = response['translations'][0]['text']
+    description_en = response['translations'][1]['text']
+    address_en = response['translations'][2]['text']
+    working_hours_en = response['translations'][3]['text']
+    new_rest = Restaurant(
+        name=name,
+        address=address,
+        coordinates=coordinates,
+        description=context.chat_data['new_rest']['description'],
+        phone=phone,
+        working_hours=working_hours,
+        vip_owner=cur_user.is_vip,
+        confirmed=0,
+        name_en=name_en,
+        description_en=description_en,
+        working_hours_en=working_hours_en,
+        address_en=address_en
+    )
+    db_sess.add(new_rest)
+    db_sess.commit()
+    return ConversationHandler.END
+
+
+def stop(update, context):
+    with open('json/messages.json') as json_data:
+        json_messages_data = json.load(json_data)
+    context.chat_data['new_rest'] = {}
+    try:
+        user_language = context.chat_data['language']
+        if user_language == 'ru':
+            text = json_messages_data['messages']['ru']['process_stopped']
+        else:
+            text = json_messages_data['messages']['en']['process_stopped']
+    except KeyError:
+        if update.message.from_user.language_code == 'ru':
+            text = json_messages_data['messages']['ru']['process_stopped']
+        else:
+            text = json_messages_data['messages']['en']['process_stopped']
+    update.message.reply_text(text)
+
+
+restaurant_conversation = ConversationHandler(
+    entry_points=[CommandHandler('conversationstart', conversation_start)],
+    states={
+        1: [MessageHandler(Filters.text & ~Filters.command, first_response)],
+
+        2: [MessageHandler(Filters.text & ~Filters.command, second_response)],
+
+        3: [MessageHandler(Filters.text & ~Filters.command, third_response)],
+
+        4: [MessageHandler(Filters.text & ~Filters.command, fourth_response)],
+
+        5: [MessageHandler(Filters.text & ~Filters.command, fifth_response)],
+
+        6: [MessageHandler(Filters.text & ~Filters.command, sixth_response)],
+
+        7: [MessageHandler(Filters.text & ~Filters.command, seventh_response)],
+
+        8: [MessageHandler(Filters.text & ~Filters.command, eighth_response)],
+
+        9: [MessageHandler(Filters.text & ~Filters.command, ninth_response)],
+
+    },
+
+    fallbacks=[CommandHandler('stop', stop)]
+)

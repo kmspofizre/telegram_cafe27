@@ -7,7 +7,7 @@ card_html_with_score_ru = Temp("""
 
 $description
 
-⏱ Режим работы - $working_hours $working_days
+⏱ Режим работы - $working_hours
 
 ⭐️ Оценка - $average_score ($number_of_scores)
 
@@ -29,7 +29,7 @@ card_html_without_score_ru = Temp("""
 
 $description
 
-⏱ Режим работы - $working_hours $working_days
+⏱ Режим работы - $working_hours
 
 💵 Средний чек - $average_price  ₽""")
 
@@ -40,7 +40,7 @@ card_html_with_score_en = Temp("""
 
 $description
 
-⏱ Operating mode - $working_hours $working_days
+⏱ Operating mode - $working_hours
 
 ⭐️ Rating - $average_score ($number_of_scores)
 
@@ -53,7 +53,7 @@ card_html_without_score_en = Temp("""
 
 $description
 
-⏱ Operating mode - $working_hours $working_days
+⏱ Operating mode - $working_hours
 
 💵 Average check - $average_price  ₽""")
 
