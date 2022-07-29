@@ -22,7 +22,8 @@
            "VIP_advantage": "VIP advantage",
            "VIP_status": "VIP status",
            "successful_payment": "You paid",
-           "already_VIP": "You already have VIP status"
+           "already_VIP": "You already have VIP status",
+           "show_more": "Show more"
          },
          "ru": {
            "greeting": "Здравствуйте",
@@ -45,7 +46,8 @@
            "VIP_advantage": "Преимущества VIP",
            "VIP_status": "VIP статус",
            "successful_payment": "Вы заплатили",
-           "already_VIP": "Вы уже владеете VIP статусом"
+           "already_VIP": "Вы уже владеете VIP статусом",
+           "show_more": "Показать больше"
          }
       },
       "payments": {

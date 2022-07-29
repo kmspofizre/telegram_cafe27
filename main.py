@@ -1,7 +1,7 @@
 import logging
 
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ShippingQueryHandler, PreCheckoutQueryHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, PreCheckoutQueryHandler
 from telegram.ext import CallbackQueryHandler
 from telegram import LabeledPrice, ShippingQuery, ShippingOption, PreCheckoutQuery, SuccessfulPayment
 from handlers import start, text_handler, callback_hand, location_hand, checkout_process, successful_payment

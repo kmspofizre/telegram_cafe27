@@ -8,6 +8,7 @@ from data.restaurant_types import RestaurantTypes
 from data.blacklist import Blacklist
 from data.restaurants import Restaurant
 from data.scores import Scores
+from data.payments import Payment
 import datetime
 from keyboards import main_menu_keyboard, card_inline_keyboard_del_ru, \
     card_inline_keyboard_del_en, \
@@ -50,8 +51,11 @@ def choose_restaurant_type(callback_data, user_tgid, user_tlg, context):
     user = db_sess.query(User).filter(User.telegram_id == user_tgid).one()
     user_fav = list(map(int, user.favourite.split(', ')))
     restaurant_type_id = int(callback_data[1])
+    page = context.chat_data['page']
     chosen_restaurants = db_sess.query(Restaurant).filter(Restaurant.confirmed).all()
-    chosen_restaurants = filter(lambda x: restaurant_type_id in map(int, x.type.split(', ')), chosen_restaurants)
+    chosen_restaurants = list(filter(lambda x: restaurant_type_id in map(int, x.type.split(', ')), chosen_restaurants))
+    all_restaurants = chosen_restaurants
+    chosen_restaurants = chosen_restaurants[5 * (page - 1):5 * page]
     to_send = list()
     for restaurant in chosen_restaurants:
         d = dict()
@@ -100,7 +104,7 @@ def choose_restaurant_type(callback_data, user_tgid, user_tlg, context):
         d['vip_owner'] = restaurant.vip_owner
         to_send.append(d)
 
-    return to_send
+    return to_send, all_restaurants
 
 
 def add_to_favourite(user_tg, restaurant, message, chat, context, media_message, json_data, dm):
@@ -182,7 +186,7 @@ def del_from_favourite(user_tg, restaurant, message, chat, context, media_messag
 def show_full_description(restaurant, message, chat, context, language, message_with_buttons, json_data, user_tgid,
                           redact=False):
     restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(restaurant)).one()
-    if restaurant.number_of_scores == 0:
+    if restaurant.number_of_scores == 0 or restaurant.number_of_scores == None:
         description = restaurant.description
         description_en = restaurant.description_en
         try:
@@ -301,6 +305,10 @@ def show_full_description(restaurant, message, chat, context, language, message_
     inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
                                          [fav_button],
                                          [rate]])
+    try:
+        restaurant.requested += 1
+    except TypeError:
+        restaurant.requested = 1
     context.chat_data['place_location'] = restaurant.coordinates
     context.bot.editMessageMedia(chat_id=chat, message_id=message, media=media[0])
     context.bot.editMessageText(chat_id=chat, message_id=message_with_buttons.message_id,
@@ -810,13 +818,23 @@ def callback_hand(update, context):
             json_messages_data = json.load(json_messages)
         data = update.callback_query.data.split('_')
         if data[0] == 'rt':
-            rests = choose_restaurant_type(data, update.callback_query.from_user.id,
-                                           update.callback_query.from_user, context)
+            if len(data) == 2:
+                context.chat_data['page'] = 1
+            else:
+                context.chat_data['page'] = int(data[2])
+            rests, all_rests = choose_restaurant_type(data, update.callback_query.from_user.id,
+                                                      update.callback_query.from_user, context)
             vip_rests = list(filter(lambda x: x['vip_owner'], rests))
             not_vip_rests = list(filter(lambda x: not x['vip_owner'], rests))
+            all_rests_vip = list(filter(lambda x: x.vip_owner, all_rests))
+            all_rests_not_vip = list(filter(lambda x: not x.vip_owner, all_rests))
+            all_rests = []
+            all_rests.extend(all_rests_vip)
+            all_rests.extend(all_rests_not_vip)
             rests = []
             rests.extend(vip_rests)
             rests.extend(not_vip_rests)
+
             for elem in rests:
                 print(elem)
                 if elem['favourite']:
@@ -865,6 +883,32 @@ def callback_hand(update, context):
                                                      [fav_button],
                                                      [rate]])
                 context.bot.sendMessage(update.callback_query.from_user.id, text=text, reply_markup=inl_keyboard)
+            print(all_rests[5 * (context.chat_data['page'] - 1):5 * context.chat_data['page']])
+            if bool(all_rests[5 * context.chat_data['page']:]):
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        text1 = json_messages_data['messages']['ru']['show_more']
+                        show_more_btn = InlineKeyboardMarkup([
+                            [InlineKeyboardButton(text=text1,
+                                                  callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
+                    else:
+                        text1 = json_messages_data['messages']['en']['show_more']
+                        show_more_btn = InlineKeyboardMarkup([
+                            [InlineKeyboardButton(text=text1,
+                                                  callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
+                except KeyError:
+                    if update.callback_query.from_user.language_code == 'ru':
+                        text1 = json_messages_data['messages']['ru']['show_more']
+                        show_more_btn = InlineKeyboardMarkup([
+                            [InlineKeyboardButton(text=text1,
+                                                  callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
+                    else:
+                        text1 = json_messages_data['messages']['en']['show_more']
+                        show_more_btn = InlineKeyboardMarkup([
+                            [InlineKeyboardButton(text=text1,
+                                                  callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
+                context.bot.sendMessage(update.callback_query.from_user.id, text=text1, reply_markup=show_more_btn)
         elif data[0] == 'addfav':
             add_to_favourite(update.callback_query.from_user, data[1], update.callback_query.message.message_id,
                              update.callback_query.message.chat_id, context, data[2], json_messages_data, data[3])
@@ -1020,5 +1064,13 @@ def successful_payment(update, context):
                               f'{update.message.successful_payment.currency}', reply_markup=keyboard)
     user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one()
     user.is_vip = True
+    new_payment = Payment(
+        payment_name='VIP status',
+        user=user.id,
+        transaction_amount=update.message.successful_payment.total_amount / 100,
+        email=update.message.successful_payment.order_info.email,
+        phone=update.message.successful_payment.order_info.phone_number
+    )
+    db_sess.add(new_payment)
     context.bot.deleteMessage(update.message.chat_id, context.chat_data['pay_message'])
     db_sess.commit()
