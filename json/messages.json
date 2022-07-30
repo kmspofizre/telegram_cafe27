@@ -32,12 +32,13 @@
            "conversation_5": "Enter the restaurant's working hours",
            "conversation_6": "Enter the average check of your restaurant in rubles (number only)",
            "conversation_7": "List, separated by commas with spaces, the categories to which your institution belongs. For example: 1, 2",
-           "conversation_8": "Send the necessary media files (photos and videos), but no more than 9",
+           "conversation_8": "Send the necessary media files (photos and videos), but no more than \n In the same message, send the number of photos. \nFor example: 5",
            "end_of_conversation": "Thank you, we have received all the necessary information. Wait for the moderators to confirm your application",
            "try_again": "Incorrect input format try again",
            "anything": "Send any message to complete the addition of the restaurant",
            "process_stopped": "The process of adding a restaurant has been interrupted",
-           "add_restaurant": "To start adding a restaurant, enter the command /conversationstart"
+           "add_restaurant": "To start adding a restaurant, enter the command /conversation",
+           "my_restaurants_empty": "You don't have any restaurants yet, or the moderation hasn't approved your application yet."
          },
          "ru": {
            "greeting": "Здравствуйте",
@@ -70,12 +71,13 @@
            "conversation_5": "Введите режим работы ресторана",
            "conversation_6": "Введите средний чек Вашего ресторана в рублях (только число)",
            "conversation_7": "Перечислите через запятые с пробелами те категории, к которым относится Ваше заведение. Например: 1, 2",
-           "conversation_8": "Отправьте необходимые медиафайлы (фото и видео), но не больше 8",
+           "conversation_8": "Отправьте необходимые медиафайлы (фото и видео), но не больше 8.\n В этом же сообщении отправьте число фотографий. \nНапример: 5",
            "end_of_conversation": "Спасибо, мы получили всю необходимую информацию. Ожидайте подтверждения Вашей заявки модераторами",
            "try_again": "Неправильный формат ввода, попробуйте еще раз",
            "anything": "Отправьте любое сообщение, чтобы завершить добавление ресторана",
            "process_stopped": "Процесс добавления ресторана прерван",
-           "add_restaurant": "Чтобы начать добавление ресторана, введите команду /conversationstart"
+           "add_restaurant": "Чтобы начать добавление ресторана, введите команду /conversation",
+           "my_restaurants_empty": "У Вас еще нет ресторанов, либо модерация еще не одобрила Вашу заявку."
          }
       },
       "payments": {
@@ -87,6 +89,12 @@
         "organization_search": "51d82b8b-a387-4c06-984c-63fe4963b74c",
         "folder_id": "b1gtvtblgr8vr0aplq5u",
         "search_api_server": "https://search-maps.yandex.ru/v1/",
-        "translate_api_server": "https://translate.api.cloud.yandex.net/translate/v2/translate"
+        "translate_api_server": "https://translate.api.cloud.yandex.net/translate/v2/translate",
+        "map_api_server": "http://static-maps.yandex.ru/1.x/"
+      },
+      "links": {
+        "chat_link": "https://t.me/+9dpfvhkdyiJmNjYy",
+        "channel_link": "https://t.me/zverochannel",
+        "moder_link": "https://t.me/Kmspofizre"
       }
 }

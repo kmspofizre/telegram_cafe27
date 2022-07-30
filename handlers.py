@@ -15,14 +15,14 @@ from keyboards import main_menu_keyboard, card_inline_keyboard_del_ru, \
     main_menu_keyboard_en, geoposition_keyboard, \
     geoposition_keyboard_en, rate_keyboard, personal_account_vip_ru, \
     personal_account_default_ru, personal_account_vip_en, \
-    personal_account_default_en, info_keyboard_ru, info_keyboard_en, single_vip_keyboard_ru, single_vip_keyboard_en
+    personal_account_default_en, get_info_keyboard_ru, get_info_keyboard_en, single_vip_keyboard_ru, single_vip_keyboard_en
 
 from templates import card_html_with_score_ru, card_html_without_score_ru, \
     card_short_html, card_html_with_score_en, card_html_without_score_en, card_short_html_en
 from distance import lonlat_distance
 from payment import vip_price
 import requests
-from images.file_saver import file_saver
+from file_saver import file_saver
 
 db_session.global_init("db/cafe27.db")
 db_sess = db_session.create_session()
@@ -39,6 +39,7 @@ folder_id = json_keys_data['API_keys']['folder_id']
 organization_api = json_keys_data['API_keys']['organization_search']
 search_api_server = json_keys_data['API_keys']['search_api_server']
 translate_api_server = json_keys_data['API_keys']["translate_api_server"]
+map_api_server = json_keys_data['API_keys']["map_api_server"]
 
 target_language = 'ru'
 
@@ -66,6 +67,11 @@ def choose_restaurant_type(callback_data, user_tgid, user_tlg, context):
     page = context.chat_data['page']
     chosen_restaurants = db_sess.query(Restaurant).filter(Restaurant.confirmed).all()
     chosen_restaurants = list(filter(lambda x: restaurant_type_id in map(int, x.type.split(', ')), chosen_restaurants))
+    vip_rests = list(filter(lambda x: x.vip_owner, chosen_restaurants))
+    not_vip_rests = list(filter(lambda x: not x.vip_owner, chosen_restaurants))
+    chosen_restaurants = []
+    chosen_restaurants.extend(vip_rests)
+    chosen_restaurants.extend(not_vip_rests)
     all_restaurants = chosen_restaurants
     chosen_restaurants = chosen_restaurants[5 * (page - 1):5 * page]
     to_send = list()
@@ -263,10 +269,25 @@ def show_full_description(restaurant, message, chat, context, language, message_
     media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
                                                                          restaurant.media.split(';'))))
     media = list()
+    coords = ','.join(restaurant.coordinates.split(',')[::-1])
+
+    map_params = {
+
+        "ll": coords,
+
+        "spn": "0.005,0.005",
+
+        "l": "map",
+        "pt": f"{coords},pm2rdm"
+    }
+
+    response = requests.get(map_api_server, params=map_params).content
+    media_ph.insert(0, InputMediaPhoto(response))
+    print(media_ph)
+    media_ph[0].caption = html_long
+    media_ph[0].parse_mode = 'HTML'
     media.extend(media_vid)
     media.extend(media_ph)
-    media[0].caption = html_long
-    media[0].parse_mode = 'HTML'
     user = db_sess.query(User).filter(User.telegram_id == user_tgid).one()
     user_fav = list(map(int, user.favourite.split(', ')))
     fav = restaurant.id in user_fav
@@ -313,6 +334,7 @@ def show_full_description(restaurant, message, chat, context, language, message_
         restaurant.requested += 1
     except TypeError:
         restaurant.requested = 1
+    db_sess.commit()
     context.chat_data['place_location'] = restaurant.coordinates
     context.bot.editMessageMedia(chat_id=chat, message_id=message, media=media[0])
     context.bot.editMessageText(chat_id=chat, message_id=message_with_buttons.message_id,
@@ -473,6 +495,63 @@ def show_favourite(user_tg, context):
         media = list()
         media.extend(media_vid)
         media.extend(media_ph)
+        media[0].caption = html_short
+        media[0].parse_mode = 'HTML'
+        d['id'] = restaurant.id
+        d['html_short'] = html_short
+        d['media'] = media
+        d['favourite'] = True
+        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        d['vip_owner'] = restaurant.vip_owner
+        to_send.append(d)
+
+    return to_send
+
+
+def show_my_rests(user_tg, context):
+    user = db_sess.query(User).filter(User.telegram_id == user_tg.id).one()
+    language = user_tg.language_code
+    chosen_restaurants = db_sess.query(Restaurant).filter(Restaurant.owner == user.id, Restaurant.confirmed).all()
+    to_send = list()
+    for restaurant in chosen_restaurants:
+        d = dict()
+
+        if len(restaurant.description) > 100:
+            description = restaurant.description[:100].split()
+            description = ' '.join(description[:len(description) - 1])
+            description_en = restaurant.description_en[:100].split()
+            description_en = ' '.join(description_en[:len(description_en) - 1])
+        else:
+            description = restaurant.description
+            description_en = restaurant.description_en
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price)
+            else:
+                html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                           description=description_en,
+                                                           average_price=restaurant.average_price)
+        except KeyError:
+            if language == 'ru':
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price)
+            else:
+                html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                           description=description_en,
+                                                           average_price=restaurant.average_price)
+        media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
+                                                                              restaurant.media.split(';'))))
+        media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
+                                                                             restaurant.media.split(';'))))
+        media = list()
+        media.extend(media_vid)
+        media.extend(media_ph)
+        print(media)
+        print(restaurant.name)
         media[0].caption = html_short
         media[0].parse_mode = 'HTML'
         d['id'] = restaurant.id
@@ -657,17 +736,17 @@ def text_handler(update, context):
                 user_language = context.chat_data['language']
                 if user_language == 'ru':
                     text = json_messages_data['messages']['ru']['info']
-                    keyboard = info_keyboard_ru
+                    keyboard = get_info_keyboard_ru()
                 else:
                     text = json_messages_data['messages']['en']['info']
-                    keyboard = info_keyboard_en
+                    keyboard = get_info_keyboard_en()
             except KeyError:
                 if update.message.from_user.language_code == 'ru':
                     text = json_messages_data['messages']['ru']['info']
-                    keyboard = info_keyboard_ru
+                    keyboard = get_info_keyboard_ru()
                 else:
                     text = json_messages_data['messages']['en']['info']
-                    keyboard = info_keyboard_en
+                    keyboard = get_info_keyboard_en()
             update.message.reply_text(text, reply_markup=keyboard)
         elif update.message.text in ('Become VIP 💵', 'Стать VIP 💵'):
             try:
@@ -712,6 +791,48 @@ def text_handler(update, context):
                 else:
                     text = json_messages_data['messages']['en']['add_restaurant']
             update.message.reply_text(text)
+        elif update.message.text in ('Мои заведения', 'My restaurants'):
+            to_show = show_my_rests(update.message.from_user, context)
+            for elem in to_show:
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                        text = json_messages_data['messages']['ru']['actions']
+                    else:
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                        text = json_messages_data['messages']['en']['actions']
+                except KeyError:
+                    if update.message.from_user.language_code == 'ru':
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                        text = json_messages_data['messages']['ru']['actions']
+                    else:
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                        text = json_messages_data['messages']['en']['actions']
+                fav_button_call = f"delfav_{elem['id']}"
+                media_message = context.bot.send_media_group(update.message.from_user.id,
+                                                             media=elem['media'])
+                tlg_button.url = elem['owner_link']
+                rate.callback_data = f"rate_{elem['id']}_{media_message[0].message_id}_des"
+                fav_button.callback_data = fav_button_call + f'_{media_message[0].message_id}_des'
+                describe.callback_data = f"des_{elem['id']}_{media_message[0].message_id}_des"
+                inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                                     [fav_button],
+                                                     [rate]])
+                context.bot.sendMessage(update.message.from_user.id, text=text, reply_markup=inl_keyboard)
+            if not bool(to_show):
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        text = json_messages_data['messages']['ru']['my_restaurants_empty']
+                    else:
+                        text = json_messages_data['messages']['en']['my_restaurants_empty']
+                except KeyError:
+                    if update.message.from_user.language_code == 'ru':
+                        text = json_messages_data['messages']['ru']['my_restaurants_empty']
+                    else:
+                        text = json_messages_data['messages']['en']['my_restaurants_empty']
+                update.message.reply_text(text)
 
 
 def location_hand(update, context):
@@ -719,7 +840,7 @@ def location_hand(update, context):
         json_messages_data = json.load(json_messages)
     user_location = update.message.location
     user_location = user_location['latitude'], user_location['longitude']
-    restaurant_location = tuple(map(lambda x: float(x), context.chat_data['place_location'].split(', ')))
+    restaurant_location = tuple(map(lambda x: float(x), context.chat_data['place_location'].split(',')))
     try:
         user_language = context.chat_data['language']
         if user_language == 'ru':
@@ -1231,7 +1352,10 @@ def fourth_response(update, context):
 def fifth_response(update, context):
     with open('json/messages.json') as json_data:
         json_messages_data = json.load(json_data)
-    context.chat_data['new_rest']['working_hours'] = update.message.text
+    try:
+        assert context.chat_data['new_rest']['working_hours']
+    except KeyError:
+        context.chat_data['new_rest']['working_hours'] = update.message.text
     try:
         user_language = context.chat_data['language']
         if user_language == 'ru':
@@ -1296,7 +1420,10 @@ def sixth_response(update, context):
 def seventh_response(update, context):
     with open('json/messages.json') as json_data:
         json_messages_data = json.load(json_data)
-    context.chat_data['new_rest']['types'] = update.message.text
+    try:
+        assert context.chat_data['new_rest']['types']
+    except KeyError:
+        context.chat_data['new_rest']['types'] = update.message.text
     try:
         user_language = context.chat_data['language']
         if user_language == 'ru':
@@ -1313,10 +1440,26 @@ def seventh_response(update, context):
 
 
 def eighth_response(update, context):
-    number_of_attachments = update.message.effective_attachment // 4
-
     with open('json/messages.json') as json_data:
         json_messages_data = json.load(json_data)
+    try:
+        assert context.chat_data['new_rest']['full_at_number']
+    except KeyError:
+        try:
+            context.chat_data['new_rest']['full_at_number'] = int(update.message.caption)
+        except TypeError:
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['try_again']
+                else:
+                    text = json_messages_data['messages']['en']['try_again']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['try_again']
+                else:
+                    text = json_messages_data['messages']['en']['try_again']
+            update.message.reply_text(text)
     try:
         user_language = context.chat_data['language']
         if user_language == 'ru':
@@ -1328,15 +1471,15 @@ def eighth_response(update, context):
             text = json_messages_data['messages']['ru']['anything']
         else:
             text = json_messages_data['messages']['en']['anything']
-    file = context.bot.get_file(update.message.photo[-1].file_id)
-    context.chat_data['new_rest']['images'].append(f"images/{file_saver(file)}")
     if not context.chat_data['new_rest']['end']:
         update.message.reply_text(text)
         context.chat_data['new_rest']['end'] = True
         context.chat_data['new_rest']['at_number'] = 1
     else:
         context.chat_data['new_rest']['at_number'] += 1
-    if context.chat_data['new_rest']['at_number'] == number_of_attachments:
+    file = context.bot.get_file(update.message.photo[-1].file_id)
+    context.chat_data['new_rest']['images'].append(f"{file_saver(file)}")
+    if context.chat_data['new_rest']['at_number'] == context.chat_data['new_rest']['full_at_number']:
         return 9
 
 
@@ -1382,8 +1525,8 @@ def ninth_response(update, context):
         name = rest_response['features'][0]['properties']['name']
     except (KeyError, IndexError):
         name = context.chat_data['new_rest']['name']
-    coordinates = ', '.join([rest_response['features'][0]['geometry']['coordinates'][1],
-                             rest_response['features'][0]['geometry']['coordinates'][0]])
+    coordinates = ','.join(map(str, [rest_response['features'][0]['geometry']['coordinates'][1],
+                                     rest_response['features'][0]['geometry']['coordinates'][0]]))
     texts = [name,
              context.chat_data['new_rest']['description'],
              address,
@@ -1406,6 +1549,7 @@ def ninth_response(update, context):
     description_en = response['translations'][1]['text']
     address_en = response['translations'][2]['text']
     working_hours_en = response['translations'][3]['text']
+    context.chat_data['new_rest']['images'].insert(0, context.chat_data['new_rest']['images'][0])
     new_rest = Restaurant(
         name=name,
         address=address,
@@ -1418,7 +1562,11 @@ def ninth_response(update, context):
         name_en=name_en,
         description_en=description_en,
         working_hours_en=working_hours_en,
-        address_en=address_en
+        address_en=address_en,
+        media=';'.join(context.chat_data['new_rest']['images']),
+        average_price=context.chat_data['new_rest']['average_amount'],
+        type=context.chat_data['new_rest']['types'],
+        owner=cur_user.id
     )
     db_sess.add(new_rest)
     db_sess.commit()
@@ -1444,7 +1592,7 @@ def stop(update, context):
 
 
 restaurant_conversation = ConversationHandler(
-    entry_points=[CommandHandler('conversationstart', conversation_start)],
+    entry_points=[CommandHandler('conversation', conversation_start)],
     states={
         1: [MessageHandler(Filters.text & ~Filters.command, first_response)],
 
@@ -1460,7 +1608,7 @@ restaurant_conversation = ConversationHandler(
 
         7: [MessageHandler(Filters.text & ~Filters.command, seventh_response)],
 
-        8: [MessageHandler(Filters.text & ~Filters.command, eighth_response)],
+        8: [MessageHandler(Filters.photo & ~Filters.command, eighth_response)],
 
         9: [MessageHandler(Filters.text & ~Filters.command, ninth_response)],
 

@@ -56,26 +56,34 @@ rate_keyboard = [[InlineKeyboardButton(text='⭐️')],
                  [InlineKeyboardButton(text='⭐⭐⭐⭐⭐')]]
 
 
-info_keyboard_ru = InlineKeyboardMarkup([
-    [InlineKeyboardButton(text='Чат 💬', url='https://t.me/+9dpfvhkdyiJmNjYy'),
-     InlineKeyboardButton(text='Канал 📺', url='https://t.me/zverochannel')],
-    [InlineKeyboardButton(text='О проекте ℹ️', callback_data='about')],
-     [InlineKeyboardButton(text='Связь с модератором 📞', url='https://t.me/Kmspofizre')]
-])
+def get_info_keyboard_ru():
+    with open('json/messages.json') as json_messages:
+        json_messages_data = json.load(json_messages)
+    info_keyboard_ru = InlineKeyboardMarkup([
+        [InlineKeyboardButton(text='Чат 💬', url=json_messages_data['links']['chat_link']),
+         InlineKeyboardButton(text='Канал 📺', url=json_messages_data['links']['channel_link'])],
+        [InlineKeyboardButton(text='О проекте ℹ️', callback_data='about')],
+        [InlineKeyboardButton(text='Связь с модератором 📞', url=json_messages_data['links']['moder_link'])]
+    ]
+    )
+    return info_keyboard_ru
 
 
-info_keyboard_en = InlineKeyboardMarkup([
-    [InlineKeyboardButton(text='Chat 💬', url='https://t.me/+9dpfvhkdyiJmNjYy'),
-     InlineKeyboardButton(text='Channel 📺', url='https://t.me/zverochannel')],
-    [InlineKeyboardButton(text='About us ℹ️', callback_data='about')],
-     [InlineKeyboardButton(text='Contact moderator 📞', url='https://t.me/Kmspofizre')]
-])
+def get_info_keyboard_en():
+    with open('json/messages.json') as json_messages:
+        json_messages_data = json.load(json_messages)
+    info_keyboard_en = InlineKeyboardMarkup([
+        [InlineKeyboardButton(text='Chat 💬', url=json_messages_data['links']['chat_link']),
+         InlineKeyboardButton(text='Channel 📺', url=json_messages_data['links']['channel_link'])],
+        [InlineKeyboardButton(text='About us ℹ️', callback_data='about')],
+        [InlineKeyboardButton(text='Contact moderator 📞', url=json_messages_data['links']['moder_link'])]
+    ])
+    return info_keyboard_en
 
 
 single_vip_keyboard_ru = InlineKeyboardMarkup([
     [InlineKeyboardButton(text='Купить VIP статус', callback_data='buyvip')]
 ])
-
 
 single_vip_keyboard_en = InlineKeyboardMarkup([
     [InlineKeyboardButton(text='Buy VIP status', callback_data='buyvip')]
