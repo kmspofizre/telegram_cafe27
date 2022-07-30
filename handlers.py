@@ -42,7 +42,7 @@ search_api_server = json_keys_data['API_keys']['search_api_server']
 translate_api_server = json_keys_data['API_keys']["translate_api_server"]
 map_api_server = json_keys_data['API_keys']["map_api_server"]
 
-target_language = 'ru'
+target_language = 'en'
 
 
 def get_message_from_json(language, context, message_type):
