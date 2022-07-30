@@ -38,7 +38,8 @@
            "anything": "Send any message to complete the addition of the restaurant",
            "process_stopped": "The process of adding a restaurant has been interrupted",
            "add_restaurant": "To start adding a restaurant, enter the command /conversation",
-           "my_restaurants_empty": "You don't have any restaurants yet, or the moderation hasn't approved your application yet."
+           "my_restaurants_empty": "You don't have any restaurants yet, or the moderation hasn't approved your application yet.",
+           "not_found": "Not found"
          },
          "ru": {
            "greeting": "Здравствуйте",
@@ -77,7 +78,8 @@
            "anything": "Отправьте любое сообщение, чтобы завершить добавление ресторана",
            "process_stopped": "Процесс добавления ресторана прерван",
            "add_restaurant": "Чтобы начать добавление ресторана, введите команду /conversation",
-           "my_restaurants_empty": "У Вас еще нет ресторанов, либо модерация еще не одобрила Вашу заявку."
+           "my_restaurants_empty": "У Вас еще нет ресторанов, либо модерация еще не одобрила Вашу заявку.",
+           "not_found": "Ничего не найдено"
          }
       },
       "payments": {

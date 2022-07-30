@@ -11,4 +11,6 @@ class RestaurantTypes(SqlAlchemyBase):
     type_name = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     only_vip = sqlalchemy.Column(sqlalchemy.Boolean, nullable=True)
     type_name_en = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
+    default = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False)
+    special_callback = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
 

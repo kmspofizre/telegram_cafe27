@@ -15,7 +15,8 @@ from keyboards import main_menu_keyboard, card_inline_keyboard_del_ru, \
     main_menu_keyboard_en, geoposition_keyboard, \
     geoposition_keyboard_en, rate_keyboard, personal_account_vip_ru, \
     personal_account_default_ru, personal_account_vip_en, \
-    personal_account_default_en, get_info_keyboard_ru, get_info_keyboard_en, single_vip_keyboard_ru, single_vip_keyboard_en
+    personal_account_default_en, get_info_keyboard_ru, get_info_keyboard_en,\
+    single_vip_keyboard_ru, single_vip_keyboard_en
 
 from templates import card_html_with_score_ru, card_html_without_score_ru, \
     card_short_html, card_html_with_score_en, card_html_without_score_en, card_short_html_en
@@ -577,46 +578,90 @@ def text_handler(update, context):
                 user_language = context.chat_data['language']
                 if user_language == 'ru':
                     if vip_user:
+                        default_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 1).all()
+                        default_types = list(map(lambda x:
+                                                 InlineKeyboardButton(text=x.type_name,
+                                                                      callback_data=x.special_callback),
+                                                 default_types))
                         restaurant_types = list(
                             map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
-                                db_sess.query(RestaurantTypes).all()))
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 0).all()))
                     else:
+                        default_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 1).all()
+                        default_types = list(map(lambda x:
+                                                 InlineKeyboardButton(text=x.type_name,
+                                                                      callback_data=x.special_callback),
+                                                 default_types))
                         restaurant_types = list(
                             map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
-                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0).all()))
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0,
+                                                                      RestaurantTypes.default == 0).all()))
                     text = json_messages_data['messages']['ru']['places']
                 else:
                     if vip_user:
+                        default_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 1).all()
+                        default_types = list(map(lambda x:
+                                                 InlineKeyboardButton(text=x.type_name_en,
+                                                                      callback_data=x.special_callback),
+                                                 default_types))
                         restaurant_types = list(
                             map(lambda x: InlineKeyboardButton(text=x.type_name_en, callback_data=f"rt_{x.id}"),
-                                db_sess.query(RestaurantTypes).all()))
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 0).all()))
                     else:
+                        default_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 1).all()
+                        default_types = list(map(lambda x:
+                                                 InlineKeyboardButton(text=x.type_name_en,
+                                                                      callback_data=x.special_callback),
+                                                 default_types))
                         restaurant_types = list(
                             map(lambda x: InlineKeyboardButton(text=x.type_name_en, callback_data=f"rt_{x.id}"),
-                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0).all()))
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0,
+                                                                      RestaurantTypes.default == 0).all()))
                     text = json_messages_data['messages']['en']['places']
             except KeyError:
                 if update.message.from_user.language_code == 'ru':
                     if vip_user:
+                        default_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 1).all()
+                        default_types = list(map(lambda x:
+                                                 InlineKeyboardButton(text=x.type_name,
+                                                                      callback_data=x.special_callback),
+                                                 default_types))
                         restaurant_types = list(
                             map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
-                                db_sess.query(RestaurantTypes).all()))
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 0).all()))
                     else:
+                        default_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 1).all()
+                        default_types = list(map(lambda x:
+                                                 InlineKeyboardButton(text=x.type_name,
+                                                                      callback_data=x.special_callback),
+                                                 default_types))
                         restaurant_types = list(
                             map(lambda x: InlineKeyboardButton(text=x.type_name, callback_data=f"rt_{x.id}"),
-                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0).all()))
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0,
+                                                                      RestaurantTypes.default == 0).all()))
                     text = json_messages_data['messages']['ru']['places']
                 else:
                     if vip_user:
+                        default_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 1).all()
+                        default_types = list(map(lambda x:
+                                                 InlineKeyboardButton(text=x.type_name_en,
+                                                                      callback_data=x.special_callback),
+                                                 default_types))
                         restaurant_types = list(
                             map(lambda x: InlineKeyboardButton(text=x.type_name_en, callback_data=f"rt_{x.id}"),
-                                db_sess.query(RestaurantTypes).all()))
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 0).all()))
                     else:
+                        default_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 1).all()
+                        default_types = list(map(lambda x:
+                                                 InlineKeyboardButton(text=x.type_name_en,
+                                                                      callback_data=x.special_callback),
+                                                 default_types))
                         restaurant_types = list(
                             map(lambda x: InlineKeyboardButton(text=x.type_name_en, callback_data=f"rt_{x.id}"),
-                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0).all()))
+                                db_sess.query(RestaurantTypes).filter(RestaurantTypes.only_vip == 0,
+                                                                      RestaurantTypes.default == 0).all()))
                     text = json_messages_data['messages']['en']['places']
-
+            restaurant_types.extend(default_types)
             buttons = InlineKeyboardMarkup(
                 [restaurant_types[2 * i:2 * (i + 1)] for i in range(len(restaurant_types) // 2 + 1)])
             update.message.reply_text(text, reply_markup=buttons)
@@ -962,91 +1007,106 @@ def callback_hand(update, context):
                 context.chat_data['page'] = int(data[2])
             rests, all_rests = choose_restaurant_type(data, update.callback_query.from_user.id,
                                                       update.callback_query.from_user, context)
-            vip_rests = list(filter(lambda x: x['vip_owner'], rests))
-            not_vip_rests = list(filter(lambda x: not x['vip_owner'], rests))
-            all_rests_vip = list(filter(lambda x: x.vip_owner, all_rests))
-            all_rests_not_vip = list(filter(lambda x: not x.vip_owner, all_rests))
-            all_rests = []
-            all_rests.extend(all_rests_vip)
-            all_rests.extend(all_rests_not_vip)
-            rests = []
-            rests.extend(vip_rests)
-            rests.extend(not_vip_rests)
+            if bool(rests):
+                vip_rests = list(filter(lambda x: x['vip_owner'], rests))
+                not_vip_rests = list(filter(lambda x: not x['vip_owner'], rests))
+                all_rests_vip = list(filter(lambda x: x.vip_owner, all_rests))
+                all_rests_not_vip = list(filter(lambda x: not x.vip_owner, all_rests))
+                all_rests = []
+                all_rests.extend(all_rests_vip)
+                all_rests.extend(all_rests_not_vip)
+                rests = []
+                rests.extend(vip_rests)
+                rests.extend(not_vip_rests)
 
-            for elem in rests:
-                print(elem)
-                if elem['favourite']:
+                for elem in rests:
+                    print(elem)
+                    if elem['favourite']:
+                        try:
+                            user_language = context.chat_data['language']
+                            if user_language == 'ru':
+                                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                                text = json_messages_data['messages']['ru']['actions']
+                            else:
+                                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                                text = json_messages_data['messages']['en']['actions']
+                        except KeyError:
+                            if update.callback_query.from_user.language_code == 'ru':
+                                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                                text = json_messages_data['messages']['ru']['actions']
+                            else:
+                                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                                text = json_messages_data['messages']['en']['actions']
+                        fav_button_call = f"delfav_{elem['id']}"
+
+                    else:
+                        try:
+                            user_language = context.chat_data['language']
+                            if user_language == 'ru':
+                                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                                text = json_messages_data['messages']['ru']['actions']
+                            else:
+                                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                                text = json_messages_data['messages']['en']['actions']
+                        except KeyError:
+                            if update.callback_query.from_user.language_code == 'ru':
+                                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                                text = json_messages_data['messages']['ru']['actions']
+                            else:
+                                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                                text = json_messages_data['messages']['en']['actions']
+                        fav_button_call = f"addfav_{elem['id']}"
+                    print(type(elem['media']))
+                    media_message = context.bot.send_media_group(update.callback_query.from_user.id,
+                                                                 media=elem['media'])
+                    tlg_button.url = elem['owner_link']
+                    rate.callback_data = f"rate_{elem['id']}_{media_message[0].message_id}_des"
+                    fav_button.callback_data = fav_button_call + f'_{media_message[0].message_id}_des'
+                    describe.callback_data = f"des_{elem['id']}_{media_message[0].message_id}_des"
+                    inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                                         [fav_button],
+                                                         [rate]])
+                    context.bot.sendMessage(update.callback_query.from_user.id, text=text, reply_markup=inl_keyboard)
+                print(all_rests[5 * (context.chat_data['page'] - 1):5 * context.chat_data['page']])
+                if bool(all_rests[5 * context.chat_data['page']:]):
                     try:
                         user_language = context.chat_data['language']
                         if user_language == 'ru':
-                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
-                            text = json_messages_data['messages']['ru']['actions']
+                            text1 = json_messages_data['messages']['ru']['show_more']
+                            show_more_btn = InlineKeyboardMarkup([
+                                [InlineKeyboardButton(text=text1,
+                                                      callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
                         else:
-                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
-                            text = json_messages_data['messages']['en']['actions']
+                            text1 = json_messages_data['messages']['en']['show_more']
+                            show_more_btn = InlineKeyboardMarkup([
+                                [InlineKeyboardButton(text=text1,
+                                                      callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
                     except KeyError:
                         if update.callback_query.from_user.language_code == 'ru':
-                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
-                            text = json_messages_data['messages']['ru']['actions']
+                            text1 = json_messages_data['messages']['ru']['show_more']
+                            show_more_btn = InlineKeyboardMarkup([
+                                [InlineKeyboardButton(text=text1,
+                                                      callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
                         else:
-                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
-                            text = json_messages_data['messages']['en']['actions']
-                    fav_button_call = f"delfav_{elem['id']}"
-
-                else:
-                    try:
-                        user_language = context.chat_data['language']
-                        if user_language == 'ru':
-                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
-                            text = json_messages_data['messages']['ru']['actions']
-                        else:
-                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
-                            text = json_messages_data['messages']['en']['actions']
-                    except KeyError:
-                        if update.callback_query.from_user.language_code == 'ru':
-                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
-                            text = json_messages_data['messages']['ru']['actions']
-                        else:
-                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
-                            text = json_messages_data['messages']['en']['actions']
-                    fav_button_call = f"addfav_{elem['id']}"
-                print(type(elem['media']))
-                media_message = context.bot.send_media_group(update.callback_query.from_user.id,
-                                                             media=elem['media'])
-                tlg_button.url = elem['owner_link']
-                rate.callback_data = f"rate_{elem['id']}_{media_message[0].message_id}_des"
-                fav_button.callback_data = fav_button_call + f'_{media_message[0].message_id}_des'
-                describe.callback_data = f"des_{elem['id']}_{media_message[0].message_id}_des"
-                inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
-                                                     [fav_button],
-                                                     [rate]])
-                context.bot.sendMessage(update.callback_query.from_user.id, text=text, reply_markup=inl_keyboard)
-            print(all_rests[5 * (context.chat_data['page'] - 1):5 * context.chat_data['page']])
-            if bool(all_rests[5 * context.chat_data['page']:]):
+                            text1 = json_messages_data['messages']['en']['show_more']
+                            show_more_btn = InlineKeyboardMarkup([
+                                [InlineKeyboardButton(text=text1,
+                                                      callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
+                    context.bot.sendMessage(update.callback_query.from_user.id, text=text1, reply_markup=show_more_btn)
+            else:
                 try:
                     user_language = context.chat_data['language']
                     if user_language == 'ru':
-                        text1 = json_messages_data['messages']['ru']['show_more']
-                        show_more_btn = InlineKeyboardMarkup([
-                            [InlineKeyboardButton(text=text1,
-                                                  callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
+                        text = json_messages_data['messages']['ru']['not_found']
+
                     else:
-                        text1 = json_messages_data['messages']['en']['show_more']
-                        show_more_btn = InlineKeyboardMarkup([
-                            [InlineKeyboardButton(text=text1,
-                                                  callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
+                        text = json_messages_data['messages']['en']['not_found']
                 except KeyError:
                     if update.callback_query.from_user.language_code == 'ru':
-                        text1 = json_messages_data['messages']['ru']['show_more']
-                        show_more_btn = InlineKeyboardMarkup([
-                            [InlineKeyboardButton(text=text1,
-                                                  callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
+                        text = json_messages_data['messages']['ru']['not_found']
                     else:
-                        text1 = json_messages_data['messages']['en']['show_more']
-                        show_more_btn = InlineKeyboardMarkup([
-                            [InlineKeyboardButton(text=text1,
-                                                  callback_data=f"rt_{data[1]}_{context.chat_data['page'] + 1}")]])
-                context.bot.sendMessage(update.callback_query.from_user.id, text=text1, reply_markup=show_more_btn)
+                        text = json_messages_data['messages']['en']['not_found']
+                context.bot.sendMessage(update.callback_query.from_user.id, text=text)
         elif data[0] == 'addfav':
             add_to_favourite(update.callback_query.from_user, data[1], update.callback_query.message.message_id,
                              update.callback_query.message.chat_id, context, data[2], json_messages_data, data[3])
@@ -1219,7 +1279,6 @@ def successful_payment(update, context):
 
 
 def conversation_start(update, context):
-    print('aaaa')
     with open('json/messages.json') as json_data:
         json_messages_data = json.load(json_data)
     user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one()
@@ -1406,7 +1465,7 @@ def sixth_response(update, context):
             text = json_messages_data['messages']['en']['conversation_7']
             lan = 'en'
     text1 = ''
-    rests = db_sess.query(RestaurantTypes).all()
+    rests = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 0).all()
     if lan == 'ru':
         for i in range(len(rests)):
             text1 += f"{i + 1}) {rests[i].type_name}\n"
