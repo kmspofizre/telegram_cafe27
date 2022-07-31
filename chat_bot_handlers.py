@@ -8,11 +8,18 @@ from templates import card_for_moderator
 from telegram import ChatPermissions
 from data.blacklist import Blacklist
 import datetime
+import requests
 
 db_session.global_init("db/cafe27.db")
 db_sess = db_session.create_session()
 vid_ext = tuple('.mp4')
 ph_ext = tuple(['.jpg', '.jpeg', '.png'])
+with open('json/messages.json') as json_d:
+    json_keys_data = json.load(json_d)
+
+folder_id = json_keys_data['API_keys']['folder_id']
+translate_api_server = json_keys_data['API_keys']["translate_api_server"]
+API_KEY = json_keys_data['API_keys']['translator']
 
 
 def text_handler(update, context):
@@ -85,7 +92,6 @@ def text_handler(update, context):
             db_sess.add(new_to_blacklist)
             db_sess.commit()
             return
-
 
 
 def start(update, context):
@@ -204,3 +210,32 @@ def unban(update, context):
         except (IndexError, ValueError):
 
             update.message.reply_text('Использование: /unban <telegram_id юзера>')
+
+
+def translate(update, context):
+    try:
+        language = context.args[0]
+        text = ' '.join(context.args[1:])
+        body = {
+            "targetLanguageCode": language,
+            "texts": text,
+            "folderId": folder_id,
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Api-Key {0}".format(API_KEY)
+        }
+        response = requests.post(translate_api_server,
+                                 json=body,
+                                 headers=headers
+                                 ).json()
+        try:
+            if response['code']:
+                update.message.reply_text('Использование: /translate <язык, на который нужно перевести> <сообщение>')
+        except KeyError:
+            update.message.reply_text(response['translations'][0]['text'])
+
+    except (IndexError, ValueError):
+
+        update.message.reply_text('Использование: /translate <язык,'
+                                  ' на который нужно перевести в формате двух букв> <сообщение>')

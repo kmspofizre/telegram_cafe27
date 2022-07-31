@@ -1,5 +1,5 @@
 import logging
-from chat_bot_handlers import start, applications, confirm, reject, text_handler, blacklist, unban
+from chat_bot_handlers import start, applications, confirm, reject, text_handler, blacklist, unban, translate
 
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -48,6 +48,15 @@ def main():
                                   pass_user_data=True
                                   ))
     dp.add_handler(CommandHandler('unban', unban))
+    dp.add_handler(CommandHandler('translate', translate,
+                                  pass_args=True,
+
+                                  pass_job_queue=True,
+
+                                  pass_chat_data=True,
+
+                                  pass_user_data=True
+                                  ))
     dp.add_handler(MessageHandler(Filters.text, text_handler))
     update.start_polling()
     update.idle()
