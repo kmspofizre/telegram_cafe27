@@ -39,7 +39,8 @@
            "process_stopped": "The process of adding a restaurant has been interrupted",
            "add_restaurant": "To start adding a restaurant, enter the command /conversation",
            "my_restaurants_empty": "You don't have any restaurants yet, or the moderation hasn't approved your application yet.",
-           "not_found": "Not found"
+           "not_found": "Not found",
+           "card_request_error": "Card request: shc_<card_number>"
          },
          "ru": {
            "greeting": "Здравствуйте",
@@ -79,7 +80,8 @@
            "process_stopped": "Процесс добавления ресторана прерван",
            "add_restaurant": "Чтобы начать добавление ресторана, введите команду /conversation",
            "my_restaurants_empty": "У Вас еще нет ресторанов, либо модерация еще не одобрила Вашу заявку.",
-           "not_found": "Ничего не найдено"
+           "not_found": "Ничего не найдено",
+           "card_request_error": "Запрос карточки: shc_<номер карточки>"
          }
       },
       "payments": {
