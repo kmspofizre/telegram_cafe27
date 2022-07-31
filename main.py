@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, PreCh
 from telegram.ext import CallbackQueryHandler
 from telegram import LabeledPrice, ShippingQuery, ShippingOption, PreCheckoutQuery, SuccessfulPayment
 from handlers import start, text_handler, callback_hand, location_hand, checkout_process, successful_payment
-from handlers import restaurant_conversation
+from handlers import restaurant_conversation, types_init
 
 
 logging.basicConfig(
@@ -20,6 +20,7 @@ TOKEN = '5412543523:AAEiLUcXgspy4bqUyKFCkC7lmsdjIzvskAE'
 
 
 def main():
+    types_init()
     update = Updater(TOKEN)
     dp = update.dispatcher
     start_handler = CommandHandler('start', start)

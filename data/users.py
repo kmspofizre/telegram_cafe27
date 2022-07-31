@@ -16,3 +16,4 @@ class User(SqlAlchemyBase):
     is_vip = sqlalchemy.Column(sqlalchemy.Boolean, default=False)
     name = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
     user_link = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
+    moderator = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False, default=0)

@@ -11,7 +11,9 @@ $description
 
 ⭐️ Оценка - $average_score ($number_of_scores)
 
-💵 Средний чек - $average_price  ₽""")
+💵 Средний чек - $average_price  ₽
+
+$address""")
 
 
 card_short_html = Temp("""
@@ -20,7 +22,9 @@ card_short_html = Temp("""
 
 $description
 
-💵 Средний чек - $average_price  ₽""")
+💵 Средний чек - $average_price  ₽
+
+$address""")
 
 
 card_html_without_score_ru = Temp("""
@@ -31,7 +35,9 @@ $description
 
 ⏱ Режим работы - $working_hours
 
-💵 Средний чек - $average_price  ₽""")
+💵 Средний чек - $average_price  ₽
+
+$address""")
 
 
 card_html_with_score_en = Temp("""
@@ -44,7 +50,9 @@ $description
 
 ⭐️ Rating - $average_score ($number_of_scores)
 
-💵 Average check - $average_price  ₽""")
+💵 Average check - $average_price  ₽
+
+$address_en""")
 
 
 card_html_without_score_en = Temp("""
@@ -55,7 +63,9 @@ $description
 
 ⏱ Operating mode - $working_hours
 
-💵 Average check - $average_price  ₽""")
+💵 Average check - $average_price  ₽
+
+$address_en""")
 
 
 card_short_html_en = Temp("""
@@ -64,4 +74,28 @@ card_short_html_en = Temp("""
 
 $description
 
-💵 Average check - $average_price  ₽""")
+💵 Average check - $average_price  ₽
+
+$address_en""")
+
+
+card_for_moderator = Temp("""
+<b>id</b> - $id
+
+<b>$name</b>
+
+
+$description
+
+⏱ Режим работы - $working_hours
+
+💵 Средний чек - $average_price  ₽
+
+$address
+
+$phone
+
+Категория - $types
+
+Владелец - $owner
+""")

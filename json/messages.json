@@ -64,7 +64,7 @@
            "successful_payment": "Вы заплатили",
            "already_VIP": "Вы уже владеете VIP статусом",
            "show_more": "Показать больше",
-           "conversation_1": "Давайте добвим новый ресторан. Какое у него название?",
+           "conversation_1": "Давайте добавим новый ресторан. Какое у него название?",
            "restaurant_exists": "У Вас уже есть ресторан. Чтобы добавить еще, купите VIP статус.",
            "conversation_2": "Введите описание ресторана",
            "conversation_3": "Введите адрес ресторана",
@@ -98,5 +98,19 @@
         "chat_link": "https://t.me/+9dpfvhkdyiJmNjYy",
         "channel_link": "https://t.me/zverochannel",
         "moder_link": "https://t.me/Kmspofizre"
-      }
+      },
+      "ban_words":
+              ["мудак", "ублюд"],
+      "punishments":
+      {
+        "ban_words": {
+          "name": "bad word usage",
+          "timeout": 1
+        },
+        "spam": {
+          "name": "spam",
+          "timeout": 1
+        }
+      },
+      "chat_id": ""
 }

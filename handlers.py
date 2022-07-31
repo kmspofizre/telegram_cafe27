@@ -45,6 +45,31 @@ map_api_server = json_keys_data['API_keys']["map_api_server"]
 target_language = 'en'
 
 
+def types_init():
+    types = ['Кафе', 'Рестораны', 'Суши-бары', 'Пиццерии',
+             'Пабы', 'Кофейни', 'Столовые', 'Траттории',
+             'По популярности', '⭐️⭐️⭐️⭐️⭐️', '⭐️⭐️⭐️⭐️',
+             '⭐️⭐️⭐️', '⭐️⭐️', '⭐️']
+    types_en = ['Cafe', 'Restaurants', 'Sushi Bars', 'Pizzerias',
+                'Pubs', 'Coffee Shops', 'Cafeterias', 'Trattorias', 'By popularity',
+                '⭐️⭐️⭐️⭐️⭐️', '⭐️⭐️⭐️⭐️', '⭐️⭐️⭐️',
+                '⭐️⭐️', '⭐️']
+    types_default = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
+    callbacks = ['', '', '', '', '', '', '', '',
+                 'popularity', 'st_5', 'st_4', 'st_3', 'st_2', 'st_1']
+    for i in range(len(types)):
+        if not db_sess.query(RestaurantTypes).filter(RestaurantTypes.type_name == types[i]).all():
+            type1 = RestaurantTypes(
+                type_name=types[i],
+                type_name_en=types_en[i],
+                only_vip=0,
+                default=types_default[i],
+                special_callback=callbacks[i]
+            )
+            db_sess.add(type1)
+            db_sess.commit()
+
+
 def get_message_from_json(language, context, message_type):
     with open('json/messages.json') as json_messages:
         json_messages_data = json.load(json_messages)
@@ -89,27 +114,34 @@ def choose_restaurant_type(callback_data, user_tgid, user_tlg, context):
             description_en = restaurant.description_en
         try:
             user_language = context.chat_data['language']
+            print(user_language)
             if user_language == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address)
             else:
+
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en)
         except KeyError:
             if user_tlg.language_code == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address)
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en)
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
                                                                              restaurant.media.split(';'))))
+        print(html_short)
         media = list()
         media.extend(media_vid)
         media.extend(media_ph)
@@ -214,23 +246,31 @@ def show_full_description(restaurant, message, chat, context, language, message_
                 html_long = card_html_without_score_ru.substitute(name=restaurant.name,
                                                                   description=description,
                                                                   working_hours=restaurant.working_hours,
-                                                                  average_price=restaurant.average_price)
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address
+                                                                  )
             else:
                 html_long = card_html_without_score_en.substitute(name=restaurant.name_en,
                                                                   description=description_en,
                                                                   working_hours=restaurant.working_hours_en,
-                                                                  average_price=restaurant.average_price)
+                                                                  average_price=restaurant.average_price,
+                                                                  address_en=restaurant.address_en
+                                                                  )
         except KeyError:
             if language == 'ru':
                 html_long = card_html_without_score_ru.substitute(name=restaurant.name,
                                                                   description=description,
                                                                   working_hours=restaurant.working_hours,
-                                                                  average_price=restaurant.average_price)
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address
+                                                                  )
             else:
                 html_long = card_html_without_score_en.substitute(name=restaurant.name_en,
                                                                   description=description_en,
                                                                   working_hours=restaurant.working_hours_en,
-                                                                  average_price=restaurant.average_price)
+                                                                  average_price=restaurant.average_price,
+                                                                  address_en=restaurant.address_en
+                                                                  )
     else:
         description = restaurant.description
         description_en = restaurant.description_en
@@ -242,14 +282,18 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                working_hours=restaurant.working_hours,
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
-                                                               number_of_scores=restaurant.number_of_scores)
+                                                               number_of_scores=restaurant.number_of_scores,
+                                                               address=restaurant.address
+                                                               )
             else:
                 html_long = card_html_with_score_en.substitute(name=restaurant.name_en,
                                                                description=description_en,
                                                                working_hours=restaurant.working_hours_en,
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
-                                                               number_of_scores=restaurant.number_of_scores)
+                                                               number_of_scores=restaurant.number_of_scores,
+                                                               address_en=restaurant.address_en
+                                                               )
         except KeyError:
             if language == 'ru':
                 html_long = card_html_with_score_ru.substitute(name=restaurant.name,
@@ -257,14 +301,18 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                working_hours=restaurant.working_hours,
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
-                                                               number_of_scores=restaurant.number_of_scores)
+                                                               number_of_scores=restaurant.number_of_scores,
+                                                               address=restaurant.address
+                                                               )
             else:
                 html_long = card_html_with_score_en.substitute(name=restaurant.name_en,
                                                                description=description_en,
                                                                working_hours=restaurant.working_hours_en,
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
-                                                               number_of_scores=restaurant.number_of_scores)
+                                                               number_of_scores=restaurant.number_of_scores,
+                                                               address_en=restaurant.address_en
+                                                               )
     media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                           restaurant.media.split(';'))))
     media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -371,7 +419,9 @@ def show_short_description(user_tg, context, rest, message, text_message_id, jso
             keyboard = main_menu_keyboard
             html_short = card_short_html.substitute(name=restaurant.name,
                                                     description=description,
-                                                    average_price=restaurant.average_price)
+                                                    average_price=restaurant.average_price,
+                                                    address=restaurant.address
+                                                    )
         else:
             fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
             text = json_data['messages']['en']['actions']
@@ -379,7 +429,9 @@ def show_short_description(user_tg, context, rest, message, text_message_id, jso
             keyboard = main_menu_keyboard_en
             html_short = card_short_html.substitute(name=restaurant.name_en,
                                                     description=description_en,
-                                                    average_price=restaurant.average_price)
+                                                    average_price=restaurant.average_price,
+                                                    address_en=restaurant.address_en
+                                                    )
     except KeyError:
         if user_tg.language_code == 'ru':
             fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
@@ -388,7 +440,9 @@ def show_short_description(user_tg, context, rest, message, text_message_id, jso
             keyboard = main_menu_keyboard
             html_short = card_short_html.substitute(name=restaurant.name,
                                                     description=description,
-                                                    average_price=restaurant.average_price)
+                                                    average_price=restaurant.average_price,
+                                                    address=restaurant.address
+                                                    )
         else:
             fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
             text = json_data['messages']['en']['actions']
@@ -396,7 +450,9 @@ def show_short_description(user_tg, context, rest, message, text_message_id, jso
             keyboard = main_menu_keyboard_en
             html_short = card_short_html.substitute(name=restaurant.name_en,
                                                     description=description_en,
-                                                    average_price=restaurant.average_price)
+                                                    average_price=restaurant.average_price,
+                                                    address_en=restaurant.address_en
+                                                    )
     media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                           restaurant.media.split(';'))))
     media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -475,20 +531,28 @@ def show_favourite(user_tg, context):
             if user_language == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address
+                                                        )
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en
+                                                           )
         except KeyError:
             if language == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address
+                                                        )
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en
+                                                           )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -542,20 +606,27 @@ def choose_restaurant_type_score(callback_data, user_tgid, user_tlg, context):
             if user_language == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address)
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en
+                                                           )
         except KeyError:
             if user_tlg.language_code == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address
+                                                        )
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en
+                                                           )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -606,20 +677,28 @@ def choose_restaurant_type_popularity(user_tgid, user_tlg, context):
             if user_language == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address
+                                                        )
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en
+                                                           )
         except KeyError:
             if user_tlg.language_code == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address
+                                                        )
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en
+                                                           )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -662,20 +741,28 @@ def show_my_rests(user_tg, context):
             if user_language == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address
+                                                        )
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en
+                                                           )
         except KeyError:
             if language == 'ru':
                 html_short = card_short_html.substitute(name=restaurant.name,
                                                         description=description,
-                                                        average_price=restaurant.average_price)
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address
+                                                        )
             else:
                 html_short = card_short_html_en.substitute(name=restaurant.name_en,
                                                            description=description_en,
-                                                           average_price=restaurant.average_price)
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en
+                                                           )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
