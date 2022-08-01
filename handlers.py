@@ -70,7 +70,7 @@ def types_init():
             db_sess.commit()
 
 
-def get_message_from_json(language, context, message_type):
+def get_message_from_json(user, context, message_type):
     with open('json/messages.json') as json_messages:
         json_messages_data = json.load(json_messages)
     try:
@@ -80,7 +80,7 @@ def get_message_from_json(language, context, message_type):
         elif user_language == 'en':
             return json_messages_data['messages']['en'][message_type]
     except KeyError:
-        if language == 'ru':
+        if user.language_code == 'ru':
             return json_messages_data['messages']['ru'][message_type]
         else:
             return json_messages_data['messages']['en'][message_type]
@@ -501,8 +501,13 @@ def start(update, context):
             )
             db_sess.add(new_user)
             db_sess.commit()
-        update.message.reply_text(get_message_from_json(update.message.from_user.language_code, context, "greeting"),
-                                  reply_markup=markup)
+        if user.name is not None:
+            name = user.name
+        else:
+            name = user.username
+        update.message.reply_text(
+            f"""{get_message_from_json(update.message.from_user, context, "greeting")}, {name}""",
+            reply_markup=markup)
 
 
 def show_favourite(user_tg, context):

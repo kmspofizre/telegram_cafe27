@@ -1,5 +1,5 @@
 import logging
-from chat_bot_handlers import start, applications, confirm, reject, text_handler, blacklist, unban, translate
+from chat_bot_handlers import start, applications, confirm, reject, text_handler, blacklist, unban, translate, bot_help
 
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -57,6 +57,7 @@ def main():
 
                                   pass_user_data=True
                                   ))
+    dp.add_handler(CommandHandler('help', bot_help))
     dp.add_handler(MessageHandler(Filters.text, text_handler))
     update.start_polling()
     update.idle()

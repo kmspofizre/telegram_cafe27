@@ -29,12 +29,13 @@ def text_handler(update, context):
     text = update.message.text
     bad_words = json_messages_data['ban_words']
     try:
-        if context.chat_data[mes.from_user.id]['number'] == 5:
+        if context.chat_data[mes.from_user.id]['number'] ==\
+                json_messages_data['punishments']['spam']['number_of_messages']:
             context.chat_data[mes.from_user.id]['number'] = 0
         context.chat_data[mes.from_user.id]['mess'][context.chat_data[mes.from_user.id]['number']] = text
         context.chat_data[mes.from_user.id]['number'] += 1
         m = context.chat_data[mes.from_user.id]['mess']
-        if m[0] == m[1] == m[2] == m[3] == m[4] and '' not in m:
+        if len(set(m)) == 1 and '' not in m:
             time_delta = datetime.timedelta(minutes=json_messages_data['punishments']['spam']['timeout'])
             timeout = datetime.datetime.now() + time_delta
             context.bot.restrict_chat_member(update.message.chat_id,
@@ -62,7 +63,7 @@ def text_handler(update, context):
             return
     except KeyError:
         context.chat_data[mes.from_user.id] = {
-            'mess': ['', '', '', '', ''],
+            'mess': [''] * json_messages_data['punishments']['spam']['number_of_messages'],
             'number': 0
         }
     for word in text.split():
@@ -239,3 +240,9 @@ def translate(update, context):
 
         update.message.reply_text('Использование: /translate <язык,'
                                   ' на который нужно перевести в формате двух букв> <сообщение>')
+
+
+def bot_help(update, context):
+    context.bot.sendMessage(update.message.chat_id, text="""Вы можете перевести сообщение командой /translate\n"
+                                                         Использование: /translate <язык,
+                                  на который нужно перевести в формате двух букв> <сообщение>""")
