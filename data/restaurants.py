@@ -20,7 +20,7 @@ class Restaurant(SqlAlchemyBase):
     vip_owner = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False)
     media = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     score = sqlalchemy.Column(sqlalchemy.REAL, nullable=False, default=0)
-    average_price = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+    average_price = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     type = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     owner = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey('users.id'), nullable=False)
     confirmed = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False, default=False)

@@ -2,81 +2,85 @@ from string import Template as Temp
 
 
 card_html_with_score_ru = Temp("""
+$tags
 <b>$name</b>
 
-
 $description
-
-⏱ Режим работы - $working_hours
-
-⭐️ Оценка - $average_score ($number_of_scores)
-
-💵 Средний чек - $average_price  ₽
-
-$address""")
+$stars $average_score ($number_of_scores)
+⏱ $working_hours
+💵 $average_price
+📍 $address""")
 
 
 card_short_html = Temp("""
+$tags
 <b>$name</b>
 
+$description
+💵 $average_price
+📍 $address""")
+
+
+card_short_html_score = Temp("""
+$tags
+<b>$name</b>
 
 $description
-
-💵 Средний чек - $average_price  ₽
-
-$address""")
+$stars $average_score ($number_of_scores)
+💵 $average_price
+📍 $address""")
 
 
 card_html_without_score_ru = Temp("""
+$tags
 <b>$name</b>
 
-
 $description
-
-⏱ Режим работы - $working_hours
-
-💵 Средний чек - $average_price  ₽
-
-$address""")
+$stars $average_score ($number_of_scores)
+⏱ $working_hours
+💵 $average_price
+📍 $address""")
 
 
 card_html_with_score_en = Temp("""
+$tags
 <b>$name</b>
 
-
 $description
-
-⏱ Operating mode - $working_hours
-
-⭐️ Rating - $average_score ($number_of_scores)
-
-💵 Average check - $average_price  ₽
-
-$address_en""")
+$stars $average_score ($number_of_scores)
+⏱ $working_hours
+💵  $average_price
+📍 $address_en""")
 
 
 card_html_without_score_en = Temp("""
+$tags
 <b>$name</b>
 
-
 $description
-
-⏱ Operating mode - $working_hours
-
-💵 Average check - $average_price  ₽
-
-$address_en""")
+$stars $average_score ($number_of_scores)
+⏱ $working_hours
+💵 $average_price
+📍 $address_en""")
 
 
 card_short_html_en = Temp("""
+$tags
 <b>$name</b>
 
+$description
+💵 $average_price
+📍 $address_en""")
+
+
+card_short_html_en_score = Temp("""
+$tags
+<b>$name</b>
 
 $description
-
-💵 Average check - $average_price  ₽
-
-$address_en""")
+$stars $average_score ($number_of_scores)
+💵 $average_price
+📍 $address_en""")
 
 
 card_for_moderator = Temp("""
@@ -91,7 +95,7 @@ $description
 
 💵 Средний чек - $average_price  ₽
 
-$address
+📍 $address
 
 $phone
 

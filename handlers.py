@@ -19,7 +19,8 @@ from keyboards import main_menu_keyboard, card_inline_keyboard_del_ru, \
     single_vip_keyboard_ru, single_vip_keyboard_en
 
 from templates import card_html_with_score_ru, card_html_without_score_ru, \
-    card_short_html, card_html_with_score_en, card_html_without_score_en, card_short_html_en
+    card_short_html, card_html_with_score_en, card_html_without_score_en, \
+    card_short_html_en, card_short_html_score, card_short_html_en_score
 from distance import lonlat_distance
 from payment import vip_price
 import requests
@@ -103,7 +104,10 @@ def choose_restaurant_type(callback_data, user_tgid, user_tlg, context):
     to_send = list()
     for restaurant in chosen_restaurants:
         d = dict()
-
+        tags = list(map(int, restaurant.type.split(', ')))
+        rest_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id.in_(tags)).all()
+        rest_tags_ru = list(map(lambda x: '#' + x.type_name, rest_types))
+        rest_tags_en = list(map(lambda x: '#' + x.type_name_en, rest_types))
         if len(restaurant.description) > 100:
             description = restaurant.description[:100].split()
             description = ' '.join(description[:len(description) - 1])
@@ -112,30 +116,88 @@ def choose_restaurant_type(callback_data, user_tgid, user_tlg, context):
         else:
             description = restaurant.description
             description_en = restaurant.description_en
-        try:
-            user_language = context.chat_data['language']
-            if user_language == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address)
-            else:
+        if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru))
+                else:
 
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en)
-        except KeyError:
-            if user_tlg.language_code == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address)
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en))
+            except KeyError:
+                if user_tlg.language_code == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru))
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en))
+        else:
+            if 4.5 <= restaurant.score <= 5:
+                stars = '⭐️⭐️⭐️⭐️⭐️'
+            elif 3.5 <= restaurant.score < 4.5:
+                stars = '⭐️⭐️⭐️⭐️'
+            elif 2.5 <= restaurant.score < 3.5:
+                stars = '⭐️⭐️⭐️'
+            elif 1.5 <= restaurant.score < 2.5:
+                stars = '⭐️⭐️'
             else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en)
+                stars = '⭐️'
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores)
+                else:
+
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en),
+                                                               stars=stars,
+                                                               average_score=restaurant.score,
+                                                               number_of_scores=restaurant.number_of_scores)
+            except KeyError:
+                if user_tlg.language_code == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -235,6 +297,10 @@ def del_from_favourite(user_tg, restaurant, message, chat, context, media_messag
 def show_full_description(restaurant, message, chat, context, language, message_with_buttons, json_data, user_tgid,
                           redact=False):
     restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(restaurant)).one()
+    tags = list(map(int, restaurant.type.split(', ')))
+    rest_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id.in_(tags)).all()
+    rest_tags_ru = list(map(lambda x: '#' + x.type_name, rest_types))
+    rest_tags_en = list(map(lambda x: '#' + x.type_name_en, rest_types))
     if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
         description = restaurant.description
         description_en = restaurant.description_en
@@ -245,14 +311,16 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                   description=description,
                                                                   working_hours=restaurant.working_hours,
                                                                   average_price=restaurant.average_price,
-                                                                  address=restaurant.address
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru)
                                                                   )
             else:
                 html_long = card_html_without_score_en.substitute(name=restaurant.name_en,
                                                                   description=description_en,
                                                                   working_hours=restaurant.working_hours_en,
                                                                   average_price=restaurant.average_price,
-                                                                  address_en=restaurant.address_en
+                                                                  address_en=restaurant.address_en,
+                                                                  tags=' '.join(rest_tags_en)
                                                                   )
         except KeyError:
             if language == 'ru':
@@ -260,18 +328,30 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                   description=description,
                                                                   working_hours=restaurant.working_hours,
                                                                   average_price=restaurant.average_price,
-                                                                  address=restaurant.address
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru)
                                                                   )
             else:
                 html_long = card_html_without_score_en.substitute(name=restaurant.name_en,
                                                                   description=description_en,
                                                                   working_hours=restaurant.working_hours_en,
                                                                   average_price=restaurant.average_price,
-                                                                  address_en=restaurant.address_en
+                                                                  address_en=restaurant.address_en,
+                                                                  tags=' '.join(rest_tags_en)
                                                                   )
     else:
         description = restaurant.description
         description_en = restaurant.description_en
+        if 4.5 <= restaurant.score <= 5:
+            stars = '⭐️⭐️⭐️⭐️⭐️'
+        elif 3.5 <= restaurant.score < 4.5:
+            stars = '⭐️⭐️⭐️⭐️'
+        elif 2.5 <= restaurant.score < 3.5:
+            stars = '⭐️⭐️⭐️'
+        elif 1.5 <= restaurant.score < 2.5:
+            stars = '⭐️⭐️'
+        else:
+            stars = '⭐️'
         try:
             user_language = context.chat_data['language']
             if user_language == 'ru':
@@ -281,7 +361,9 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
                                                                number_of_scores=restaurant.number_of_scores,
-                                                               address=restaurant.address
+                                                               address=restaurant.address,
+                                                               tags=' '.join(rest_tags_ru),
+                                                               stars=stars
                                                                )
             else:
                 html_long = card_html_with_score_en.substitute(name=restaurant.name_en,
@@ -290,7 +372,9 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
                                                                number_of_scores=restaurant.number_of_scores,
-                                                               address_en=restaurant.address_en
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en),
+                                                               stars=stars
                                                                )
         except KeyError:
             if language == 'ru':
@@ -300,7 +384,9 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
                                                                number_of_scores=restaurant.number_of_scores,
-                                                               address=restaurant.address
+                                                               address=restaurant.address,
+                                                               tags=' '.join(rest_tags_ru),
+                                                               stars=stars
                                                                )
             else:
                 html_long = card_html_with_score_en.substitute(name=restaurant.name_en,
@@ -309,7 +395,9 @@ def show_full_description(restaurant, message, chat, context, language, message_
                                                                average_price=restaurant.average_price,
                                                                average_score=restaurant.score,
                                                                number_of_scores=restaurant.number_of_scores,
-                                                               address_en=restaurant.address_en
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en),
+                                                               stars=stars
                                                                )
     media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                           restaurant.media.split(';'))))
@@ -398,6 +486,10 @@ def show_short_description(user_tg, context, rest, message, text_message_id, jso
     else:
         fav = 'add'
     restaurant = db_sess.query(Restaurant).filter(Restaurant.id == int(rest)).one()
+    tags = list(map(int, restaurant.type.split(', ')))
+    rest_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id.in_(tags)).all()
+    rest_tags_ru = list(map(lambda x: '#' + x.type_name, rest_types))
+    rest_tags_en = list(map(lambda x: '#' + x.type_name_en, rest_types))
     if len(restaurant.description) > 100:
         description = restaurant.description[:100].split()
         description = ' '.join(description[:len(description) - 1])
@@ -406,49 +498,124 @@ def show_short_description(user_tg, context, rest, message, text_message_id, jso
     else:
         description = restaurant.description
         description_en = restaurant.description_en
-    try:
-        user_language = context.chat_data['language']
-        if user_language == 'ru':
-            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
-            text = json_data['messages']['ru']['actions']
-            text1 = json_data['messages']['ru']['back']
-            keyboard = main_menu_keyboard
-            html_short = card_short_html.substitute(name=restaurant.name,
-                                                    description=description,
-                                                    average_price=restaurant.average_price,
-                                                    address=restaurant.address
-                                                    )
+    if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
+                text = json_data['messages']['ru']['actions']
+                text1 = json_data['messages']['ru']['back']
+                keyboard = main_menu_keyboard
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address,
+                                                        tags=' '.join(rest_tags_ru)
+                                                        )
+            else:
+                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
+                text = json_data['messages']['en']['actions']
+                text1 = json_data['messages']['en']['back']
+                keyboard = main_menu_keyboard_en
+                html_short = card_short_html.substitute(name=restaurant.name_en,
+                                                        description=description_en,
+                                                        average_price=restaurant.average_price,
+                                                        address_en=restaurant.address_en,
+                                                        tags=' '.join(rest_tags_en)
+                                                        )
+        except KeyError:
+            if user_tg.language_code == 'ru':
+                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
+                text = json_data['messages']['ru']['actions']
+                text1 = json_data['messages']['ru']['back']
+                keyboard = main_menu_keyboard
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address,
+                                                        tags=' '.join(rest_tags_ru)
+                                                        )
+            else:
+                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
+                text = json_data['messages']['en']['actions']
+                text1 = json_data['messages']['en']['back']
+                keyboard = main_menu_keyboard_en
+                html_short = card_short_html.substitute(name=restaurant.name_en,
+                                                        description=description_en,
+                                                        average_price=restaurant.average_price,
+                                                        address_en=restaurant.address_en,
+                                                        tags=' '.join(rest_tags_en)
+                                                        )
+    else:
+        if 4.5 <= restaurant.score <= 5:
+            stars = '⭐️⭐️⭐️⭐️⭐️'
+        elif 3.5 <= restaurant.score < 4.5:
+            stars = '⭐️⭐️⭐️⭐️'
+        elif 2.5 <= restaurant.score < 3.5:
+            stars = '⭐️⭐️⭐️'
+        elif 1.5 <= restaurant.score < 2.5:
+            stars = '⭐️⭐️'
         else:
-            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
-            text = json_data['messages']['en']['actions']
-            text1 = json_data['messages']['en']['back']
-            keyboard = main_menu_keyboard_en
-            html_short = card_short_html.substitute(name=restaurant.name_en,
-                                                    description=description_en,
-                                                    average_price=restaurant.average_price,
-                                                    address_en=restaurant.address_en
-                                                    )
-    except KeyError:
-        if user_tg.language_code == 'ru':
-            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
-            text = json_data['messages']['ru']['actions']
-            text1 = json_data['messages']['ru']['back']
-            keyboard = main_menu_keyboard
-            html_short = card_short_html.substitute(name=restaurant.name,
-                                                    description=description,
-                                                    average_price=restaurant.average_price,
-                                                    address=restaurant.address
-                                                    )
-        else:
-            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
-            text = json_data['messages']['en']['actions']
-            text1 = json_data['messages']['en']['back']
-            keyboard = main_menu_keyboard_en
-            html_short = card_short_html.substitute(name=restaurant.name_en,
-                                                    description=description_en,
-                                                    average_price=restaurant.average_price,
-                                                    address_en=restaurant.address_en
-                                                    )
+            stars = '⭐️'
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
+                text = json_data['messages']['ru']['actions']
+                text1 = json_data['messages']['ru']['back']
+                keyboard = main_menu_keyboard
+                html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                              description=description,
+                                                              average_price=restaurant.average_price,
+                                                              address=restaurant.address,
+                                                              tags=' '.join(rest_tags_ru),
+                                                              stars=stars,
+                                                              average_score=restaurant.score,
+                                                              number_of_scores=restaurant.number_of_scores
+                                                              )
+            else:
+                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
+                text = json_data['messages']['en']['actions']
+                text1 = json_data['messages']['en']['back']
+                keyboard = main_menu_keyboard_en
+                html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                 description=description_en,
+                                                                 average_price=restaurant.average_price,
+                                                                 address_en=restaurant.address_en,
+                                                                 tags=' '.join(rest_tags_en),
+                                                                 stars=stars,
+                                                                 average_score=restaurant.score,
+                                                                 number_of_scores=restaurant.number_of_scores
+                                                                 )
+        except KeyError:
+            if user_tg.language_code == 'ru':
+                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru(fav, 'des')
+                text = json_data['messages']['ru']['actions']
+                text1 = json_data['messages']['ru']['back']
+                keyboard = main_menu_keyboard
+                html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                              description=description,
+                                                              average_price=restaurant.average_price,
+                                                              address=restaurant.address,
+                                                              tags=' '.join(rest_tags_ru),
+                                                              stars=stars,
+                                                              average_score=restaurant.score,
+                                                              number_of_scores=restaurant.number_of_scores
+                                                              )
+            else:
+                fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
+                text = json_data['messages']['en']['actions']
+                text1 = json_data['messages']['en']['back']
+                keyboard = main_menu_keyboard_en
+                html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                 description=description_en,
+                                                                 average_price=restaurant.average_price,
+                                                                 address_en=restaurant.address_en,
+                                                                 tags=' '.join(rest_tags_en),
+                                                                 stars=stars,
+                                                                 average_score=restaurant.score,
+                                                                 number_of_scores=restaurant.number_of_scores
+                                                                 )
     media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                           restaurant.media.split(';'))))
     media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -518,7 +685,10 @@ def show_favourite(user_tg, context):
     to_send = list()
     for restaurant in chosen_restaurants:
         d = dict()
-
+        tags = list(map(int, restaurant.type.split(', ')))
+        rest_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id.in_(tags)).all()
+        rest_tags_ru = list(map(lambda x: '#' + x.type_name, rest_types))
+        rest_tags_en = list(map(lambda x: '#' + x.type_name_en, rest_types))
         if len(restaurant.description) > 100:
             description = restaurant.description[:100].split()
             description = ' '.join(description[:len(description) - 1])
@@ -527,33 +697,92 @@ def show_favourite(user_tg, context):
         else:
             description = restaurant.description
             description_en = restaurant.description_en
-        try:
-            user_language = context.chat_data['language']
-            if user_language == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address
-                                                        )
+        if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru)
+                                                            )
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en)
+                                                               )
+            except KeyError:
+                if language == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru)
+                                                            )
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en)
+                                                               )
+        else:
+            if 4.5 <= restaurant.score <= 5:
+                stars = '⭐️⭐️⭐️⭐️⭐️'
+            elif 3.5 <= restaurant.score < 4.5:
+                stars = '⭐️⭐️⭐️⭐️'
+            elif 2.5 <= restaurant.score < 3.5:
+                stars = '⭐️⭐️⭐️'
+            elif 1.5 <= restaurant.score < 2.5:
+                stars = '⭐️⭐️'
             else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en
-                                                           )
-        except KeyError:
-            if language == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address
-                                                        )
-            else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en
-                                                           )
+                stars = '⭐️'
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
+            except KeyError:
+                if language == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -593,7 +822,10 @@ def choose_restaurant_type_score(callback_data, user_tgid, user_tlg, context):
     to_send = list()
     for restaurant in chosen_restaurants:
         d = dict()
-
+        tags = list(map(int, restaurant.type.split(', ')))
+        rest_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id.in_(tags)).all()
+        rest_tags_ru = list(map(lambda x: '#' + x.type_name, rest_types))
+        rest_tags_en = list(map(lambda x: '#' + x.type_name_en, rest_types))
         if len(restaurant.description) > 100:
             description = restaurant.description[:100].split()
             description = ' '.join(description[:len(description) - 1])
@@ -602,32 +834,91 @@ def choose_restaurant_type_score(callback_data, user_tgid, user_tlg, context):
         else:
             description = restaurant.description
             description_en = restaurant.description_en
-        try:
-            user_language = context.chat_data['language']
-            if user_language == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address)
+        if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru))
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en)
+                                                               )
+            except KeyError:
+                if user_tlg.language_code == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru)
+                                                            )
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en)
+                                                               )
+        else:
+            if 4.5 <= restaurant.score <= 5:
+                stars = '⭐️⭐️⭐️⭐️⭐️'
+            elif 3.5 <= restaurant.score < 4.5:
+                stars = '⭐️⭐️⭐️⭐️'
+            elif 2.5 <= restaurant.score < 3.5:
+                stars = '⭐️⭐️⭐️'
+            elif 1.5 <= restaurant.score < 2.5:
+                stars = '⭐️⭐️'
             else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en
-                                                           )
-        except KeyError:
-            if user_tlg.language_code == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address
-                                                        )
-            else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en
-                                                           )
+                stars = '⭐️'
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
+            except KeyError:
+                if user_tlg.language_code == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -664,7 +955,10 @@ def choose_restaurant_type_popularity(user_tgid, user_tlg, context):
     to_send = list()
     for restaurant in chosen_restaurants:
         d = dict()
-
+        tags = list(map(int, restaurant.type.split(', ')))
+        rest_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id.in_(tags)).all()
+        rest_tags_ru = list(map(lambda x: '#' + x.type_name, rest_types))
+        rest_tags_en = list(map(lambda x: '#' + x.type_name_en, rest_types))
         if len(restaurant.description) > 100:
             description = restaurant.description[:100].split()
             description = ' '.join(description[:len(description) - 1])
@@ -673,33 +967,92 @@ def choose_restaurant_type_popularity(user_tgid, user_tlg, context):
         else:
             description = restaurant.description
             description_en = restaurant.description_en
-        try:
-            user_language = context.chat_data['language']
-            if user_language == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address
-                                                        )
+        if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru)
+                                                            )
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en)
+                                                               )
+            except KeyError:
+                if user_tlg.language_code == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru)
+                                                            )
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en)
+                                                               )
+        else:
+            if 4.5 <= restaurant.score <= 5:
+                stars = '⭐️⭐️⭐️⭐️⭐️'
+            elif 3.5 <= restaurant.score < 4.5:
+                stars = '⭐️⭐️⭐️⭐️'
+            elif 2.5 <= restaurant.score < 3.5:
+                stars = '⭐️⭐️⭐️'
+            elif 1.5 <= restaurant.score < 2.5:
+                stars = '⭐️⭐️'
             else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en
-                                                           )
-        except KeyError:
-            if user_tlg.language_code == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address
-                                                        )
-            else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en
-                                                           )
+                stars = '⭐️'
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
+            except KeyError:
+                if user_tlg.language_code == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -728,7 +1081,10 @@ def show_my_rests(user_tg, context):
     to_send = list()
     for restaurant in chosen_restaurants:
         d = dict()
-
+        tags = list(map(int, restaurant.type.split(', ')))
+        rest_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id.in_(tags)).all()
+        rest_tags_ru = list(map(lambda x: '#' + x.type_name, rest_types))
+        rest_tags_en = list(map(lambda x: '#' + x.type_name_en, rest_types))
         if len(restaurant.description) > 100:
             description = restaurant.description[:100].split()
             description = ' '.join(description[:len(description) - 1])
@@ -737,33 +1093,92 @@ def show_my_rests(user_tg, context):
         else:
             description = restaurant.description
             description_en = restaurant.description_en
-        try:
-            user_language = context.chat_data['language']
-            if user_language == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address
-                                                        )
+        if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru)
+                                                            )
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en)
+                                                               )
+            except KeyError:
+                if language == 'ru':
+                    html_short = card_short_html.substitute(name=restaurant.name,
+                                                            description=description,
+                                                            average_price=restaurant.average_price,
+                                                            address=restaurant.address,
+                                                            tags=' '.join(rest_tags_ru)
+                                                            )
+                else:
+                    html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                               description=description_en,
+                                                               average_price=restaurant.average_price,
+                                                               address_en=restaurant.address_en,
+                                                               tags=' '.join(rest_tags_en)
+                                                               )
+        else:
+            if 4.5 <= restaurant.score <= 5:
+                stars = '⭐️⭐️⭐️⭐️⭐️'
+            elif 3.5 <= restaurant.score < 4.5:
+                stars = '⭐️⭐️⭐️⭐️'
+            elif 2.5 <= restaurant.score < 3.5:
+                stars = '⭐️⭐️⭐️'
+            elif 1.5 <= restaurant.score < 2.5:
+                stars = '⭐️⭐️'
             else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en
-                                                           )
-        except KeyError:
-            if language == 'ru':
-                html_short = card_short_html.substitute(name=restaurant.name,
-                                                        description=description,
-                                                        average_price=restaurant.average_price,
-                                                        address=restaurant.address
-                                                        )
-            else:
-                html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                           description=description_en,
-                                                           average_price=restaurant.average_price,
-                                                           address_en=restaurant.address_en
-                                                           )
+                stars = '⭐️'
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
+            except KeyError:
+                if language == 'ru':
+                    html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                                  description=description,
+                                                                  average_price=restaurant.average_price,
+                                                                  address=restaurant.address,
+                                                                  tags=' '.join(rest_tags_ru),
+                                                                  stars=stars,
+                                                                  average_score=restaurant.score,
+                                                                  number_of_scores=restaurant.number_of_scores
+                                                                  )
+                else:
+                    html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                     description=description_en,
+                                                                     average_price=restaurant.average_price,
+                                                                     address_en=restaurant.address_en,
+                                                                     tags=' '.join(rest_tags_en),
+                                                                     stars=stars,
+                                                                     average_score=restaurant.score,
+                                                                     number_of_scores=restaurant.number_of_scores
+                                                                     )
         media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                               restaurant.media.split(';'))))
         media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -790,6 +1205,10 @@ def show_one_rest(rest_id, context, user_tg):
     restaurant = db_sess.query(Restaurant).filter(Restaurant.id == rest_id).one()
     user = db_sess.query(User).filter(User.telegram_id == user_tg.id).one()
     user_fav = list(map(int, user.favourite.split(', ')))
+    tags = list(map(int, restaurant.type.split(', ')))
+    rest_types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id.in_(tags)).all()
+    rest_tags_ru = list(map(lambda x: '#' + x.type_name, rest_types))
+    rest_tags_en = list(map(lambda x: '#' + x.type_name_en, rest_types))
     if restaurant is None:
         return False
     if len(restaurant.description) > 100:
@@ -800,33 +1219,92 @@ def show_one_rest(rest_id, context, user_tg):
     else:
         description = restaurant.description
         description_en = restaurant.description_en
-    try:
-        user_language = context.chat_data['language']
-        if user_language == 'ru':
-            html_short = card_short_html.substitute(name=restaurant.name,
-                                                    description=description,
-                                                    average_price=restaurant.average_price,
-                                                    address=restaurant.address
-                                                    )
+    if restaurant.number_of_scores == 0 or restaurant.number_of_scores is None:
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address,
+                                                        tags=' '.join(rest_tags_ru)
+                                                        )
+            else:
+                html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                           description=description_en,
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en,
+                                                           tags=' '.join(rest_tags_en)
+                                                           )
+        except KeyError:
+            if language == 'ru':
+                html_short = card_short_html.substitute(name=restaurant.name,
+                                                        description=description,
+                                                        average_price=restaurant.average_price,
+                                                        address=restaurant.address,
+                                                        tags=' '.join(rest_tags_ru)
+                                                        )
+            else:
+                html_short = card_short_html_en.substitute(name=restaurant.name_en,
+                                                           description=description_en,
+                                                           average_price=restaurant.average_price,
+                                                           address_en=restaurant.address_en,
+                                                           tags=' '.join(rest_tags_en)
+                                                           )
+    else:
+        if 4.5 <= restaurant.score <= 5:
+            stars = '⭐️⭐️⭐️⭐️⭐️'
+        elif 3.5 <= restaurant.score < 4.5:
+            stars = '⭐️⭐️⭐️⭐️'
+        elif 2.5 <= restaurant.score < 3.5:
+            stars = '⭐️⭐️⭐️'
+        elif 1.5 <= restaurant.score < 2.5:
+            stars = '⭐️⭐️'
         else:
-            html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                       description=description_en,
-                                                       average_price=restaurant.average_price,
-                                                       address_en=restaurant.address_en
-                                                       )
-    except KeyError:
-        if language == 'ru':
-            html_short = card_short_html.substitute(name=restaurant.name,
-                                                    description=description,
-                                                    average_price=restaurant.average_price,
-                                                    address=restaurant.address
-                                                    )
-        else:
-            html_short = card_short_html_en.substitute(name=restaurant.name_en,
-                                                       description=description_en,
-                                                       average_price=restaurant.average_price,
-                                                       address_en=restaurant.address_en
-                                                       )
+            stars = '⭐️'
+        try:
+            user_language = context.chat_data['language']
+            if user_language == 'ru':
+                html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                              description=description,
+                                                              average_price=restaurant.average_price,
+                                                              address=restaurant.address,
+                                                              tags=' '.join(rest_tags_ru),
+                                                              stars=stars,
+                                                              average_score=restaurant.score,
+                                                              number_of_scores=restaurant.number_of_scores
+                                                              )
+            else:
+                html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                 description=description_en,
+                                                                 average_price=restaurant.average_price,
+                                                                 address_en=restaurant.address_en,
+                                                                 tags=' '.join(rest_tags_en),
+                                                                 stars=stars,
+                                                                 average_score=restaurant.score,
+                                                                 number_of_scores=restaurant.number_of_scores
+                                                                 )
+        except KeyError:
+            if language == 'ru':
+                html_short = card_short_html_score.substitute(name=restaurant.name,
+                                                              description=description,
+                                                              average_price=restaurant.average_price,
+                                                              address=restaurant.address,
+                                                              tags=' '.join(rest_tags_ru),
+                                                              stars=stars,
+                                                              average_score=restaurant.score,
+                                                              number_of_scores=restaurant.number_of_scores
+                                                              )
+            else:
+                html_short = card_short_html_en_score.substitute(name=restaurant.name_en,
+                                                                 description=description_en,
+                                                                 average_price=restaurant.average_price,
+                                                                 address_en=restaurant.address_en,
+                                                                 tags=' '.join(rest_tags_en),
+                                                                 stars=stars,
+                                                                 average_score=restaurant.score,
+                                                                 number_of_scores=restaurant.number_of_scores
+                                                                 )
     media_vid = list(map(lambda x: InputMediaVideo(open(x, 'rb')), filter(lambda y: y.endswith(vid_ext),
                                                                           restaurant.media.split(';'))))
     media_ph = list(map(lambda x: InputMediaPhoto(open(x, 'rb')), filter(lambda y: y.endswith(ph_ext),
@@ -1981,7 +2459,23 @@ def sixth_response(update, context):
     with open('json/messages.json') as json_data:
         json_messages_data = json.load(json_data)
     try:
-        context.chat_data['new_rest']['average_amount'] = int(update.message.text)
+        money = int(update.message.text)
+        if money not in (1, 2, 3):
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['try_again']
+                else:
+                    text = json_messages_data['messages']['en']['try_again']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['try_again']
+                else:
+                    text = json_messages_data['messages']['en']['try_again']
+            update.message.reply_text(text)
+            return 6
+
+        context.chat_data['new_rest']['average_amount'] = '₽' * money
     except (TypeError, ValueError):
         try:
             user_language = context.chat_data['language']
@@ -2149,7 +2643,7 @@ def ninth_response(update, context):
 
     rest_response = requests.get(search_api_server, params=search_params).json()
     try:
-        address = rest_response['features'][0]['properties']['CompanyMetaData']['address']
+        address = ', '.join(rest_response['features'][0]['properties']['CompanyMetaData']['address'].split(', ')[1:])
     except (KeyError, IndexError):
         address = context.chat_data['new_rest']['address']
     try:
