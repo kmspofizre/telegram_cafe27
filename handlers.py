@@ -1982,7 +1982,7 @@ def sixth_response(update, context):
         json_messages_data = json.load(json_data)
     try:
         context.chat_data['new_rest']['average_amount'] = int(update.message.text)
-    except TypeError:
+    except (TypeError, ValueError):
         try:
             user_language = context.chat_data['language']
             if user_language == 'ru':
@@ -1995,7 +1995,7 @@ def sixth_response(update, context):
             else:
                 text = json_messages_data['messages']['en']['try_again']
         update.message.reply_text(text)
-        return 5
+        return 6
     try:
         user_language = context.chat_data['language']
         if user_language == 'ru':
@@ -2015,10 +2015,10 @@ def sixth_response(update, context):
     rests = db_sess.query(RestaurantTypes).filter(RestaurantTypes.default == 0).all()
     if lan == 'ru':
         for i in range(len(rests)):
-            text1 += f"{i + 1}) {rests[i].type_name}\n"
+            text1 += f"{rests[1].id}) {rests[i].type_name}\n"
     else:
         for i in range(len(rests)):
-            text1 += f"{i + 1}) {rests[i].type_name_en}\n"
+            text1 += f"{rests[i].id}) {rests[i].type_name_en}\n"
     update.message.reply_text(f'{text}\n{text1}')
     return 7
 
@@ -2029,6 +2029,39 @@ def seventh_response(update, context):
     try:
         assert context.chat_data['new_rest']['types']
     except KeyError:
+        try:
+            types = update.message.text.split(', ')
+            types = map(int, types)
+            for elem in types:
+                type_exists = db_sess.query(RestaurantTypes).filter(RestaurantTypes.id == elem).all()
+                if not bool(type_exists):
+                    try:
+                        user_language = context.chat_data['language']
+                        if user_language == 'ru':
+                            text = json_messages_data['messages']['ru']['try_again']
+                        else:
+                            text = json_messages_data['messages']['en']['try_again']
+                    except KeyError:
+                        if update.message.from_user.language_code == 'ru':
+                            text = json_messages_data['messages']['ru']['try_again']
+                        else:
+                            text = json_messages_data['messages']['en']['try_again']
+                    update.message.reply_text(text)
+                    return 7
+        except (TypeError, ValueError):
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    text = json_messages_data['messages']['ru']['try_again']
+                else:
+                    text = json_messages_data['messages']['en']['try_again']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    text = json_messages_data['messages']['ru']['try_again']
+                else:
+                    text = json_messages_data['messages']['en']['try_again']
+            update.message.reply_text(text)
+            return 7
         context.chat_data['new_rest']['types'] = update.message.text
     try:
         user_language = context.chat_data['language']
@@ -2053,7 +2086,7 @@ def eighth_response(update, context):
     except KeyError:
         try:
             context.chat_data['new_rest']['full_at_number'] = int(update.message.caption)
-        except TypeError:
+        except (TypeError, ValueError):
             try:
                 user_language = context.chat_data['language']
                 if user_language == 'ru':
@@ -2187,14 +2220,19 @@ def stop(update, context):
         user_language = context.chat_data['language']
         if user_language == 'ru':
             text = json_messages_data['messages']['ru']['process_stopped']
+            keyboard = main_menu_keyboard
         else:
             text = json_messages_data['messages']['en']['process_stopped']
+            keyboard = main_menu_keyboard_en
     except KeyError:
         if update.message.from_user.language_code == 'ru':
             text = json_messages_data['messages']['ru']['process_stopped']
+            keyboard = main_menu_keyboard
         else:
             text = json_messages_data['messages']['en']['process_stopped']
-    update.message.reply_text(text)
+            keyboard = main_menu_keyboard_en
+    update.message.reply_text(text, reply_markup=keyboard)
+    return ConversationHandler.END
 
 
 restaurant_conversation = ConversationHandler(
