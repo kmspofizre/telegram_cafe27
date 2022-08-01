@@ -501,10 +501,10 @@ def start(update, context):
             )
             db_sess.add(new_user)
             db_sess.commit()
-        if user.name is not None:
-            name = user.name
+        if user[0].name is not None:
+            name = user[0].name
         else:
-            name = user.username
+            name = user[0].username
         update.message.reply_text(
             f"""{get_message_from_json(update.message.from_user, context, "greeting")}, {name}""",
             reply_markup=markup)
