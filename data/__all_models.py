@@ -6,3 +6,5 @@ from . import posts
 from . import blacklist
 from . import scores
 from . import payments
+from . import banners
+from . import tasks
