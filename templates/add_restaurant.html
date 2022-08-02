@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="content">
+        <form method="post" novalidate enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            <p>
+                {{ form.name.label }}<br>
+                {{ form.name(class="form-control") }}
+                {% for error in form.name.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.description.label }}<br>
+                {{ form.description(class="form-control") }}
+                {% for error in form.description.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.address.label }}<br>
+                {{ form.address(class="form-control") }}
+                {% for error in form.address.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.average.label }}<br>
+                {{ form.average(class="form-control") }}
+                {% for error in form.average.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.types.label }}<br>
+                {{ form.types(class="form-control") }}
+                {% for error in form.types.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.operating.label }}<br>
+                {{ form.operating(class="form-control") }}
+                {% for error in form.operating.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <div class="mb-3">
+                <label for="formFile" class="form-label">{{ form.media.label }}</label>
+                {{ form.media(class="form-control", type="file", id="formFile") }}
+              </div>
+            <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
+        </form>
+    </section>
+{% endblock %}

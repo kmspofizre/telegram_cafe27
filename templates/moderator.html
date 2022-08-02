@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="content">
+        <div class="card-body p-0">
+            <table class="table table-striped projects">
+                <thead>
+                    <tr>
+                        <th style="width: 1%">
+                            #
+                        </th>
+                        <th style="width: 20%">
+                            Name
+                        </th>
+                        <th>
+                            Address
+                        </th>
+                        <th style="width: 20%">
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            #
+                        </td>
+                        <td>
+                            Сообщение
+                        </td>
+                        <td class="project_progress">
+                            Нынешний текст
+                        </td>
+                        <td class="project-actions text-right">
+                          <a class="btn btn-primary btn-sm" href="#">
+                              Редактировать фразу
+                          </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <a><button type="button" class="btn btn-success">Добавить опрос</button></a>
+          </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="content">
+        <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Статьи</h3>
+
+              <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <button type="button" class="btn btn-tool" data-card-widget="remove" title="Remove">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-striped projects">
+                  <thead>
+                      <tr>
+                          <th style="width: 1%">
+                              #
+                          </th>
+                          <th style="width: 20%">
+                              Header
+                          </th>
+                          <th>
+                              Text (first 100 chars)
+                          </th>
+                          <th style="width: 20%">
+                          </th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      <tr>
+                          <td>
+                              1
+                          </td>
+                          <td>
+                              Заголовок статьи
+                          </td>
+                          <td class="project_progress">
+                            Текст статьи
+                          </td>
+                          <td class="project-actions text-right">
+                            <a class="btn btn-primary btn-sm" href="#">
+                                Запланировать
+                            </a>
+                          </td>
+                      </tr>
+                  </tbody>
+              </table>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <a><button type="button" class="btn btn-success">Новая</button></a>
+    </section>
+{% endblock %}

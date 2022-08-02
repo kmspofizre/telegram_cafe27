@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="content">
+        <h5 class="card-title">Галочкой отмечены те, которые всем пользователям</h5><br>
+        <div class="form-group">
+          <form class="login_form" method="post">
+          {% for category in categories %}
+            <div class="custom-control custom-checkbox">
+              {% if category.only_vip %}
+                  <input class="custom-control-input" type="checkbox" id="customCheckbox{{category.id}}" value="option1" name="{{category.id}}">
+              {% else %}
+                  <input class="custom-control-input" type="checkbox" id="customCheckbox{{category.id}}" value="option1" name="{{category.id}}" checked>
+              {% endif %}
+              <label for="customCheckbox{{category.id}}" class="custom-control-label">{{ category.type_name }}</label><br>
+            </div>
+          {% endfor %}
+           <input class="btn btn-primary btn-sm" type="submit" >
+           </input>
+            </form>
+          </div>
+    </section>
+  {% endblock %}

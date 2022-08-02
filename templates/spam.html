@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+    <section class="content">
+        <form method="post" novalidate enctype="multipart/form-data" style="width: 50%">
+            {{ form.hidden_tag() }}
+            <p>
+                {{ form.lenght.label }}<br>
+                {{ form.lenght(class="form-control") }}
+                {% for error in form.lenght.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.mes.label }}<br>
+                {{ form.mes(class="form-control") }}
+                {% for error in form.words.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
+        </form>
+        <div class="card-body p-0">
+            <table class="table table-striped projects">
+                <thead>
+                    <tr>
+                        <th style="width: 1%">
+                            #
+                        </th>
+                        <th style="width: 20%">
+                            Name
+                        </th>
+                        <th>
+                            Username
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            1
+                        </td>
+                        <td>
+                            Имя
+                        </td>
+                        <td class="project_progress">
+                          Никнейм
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+          </div>
+    </section>
+{% endblock %}
