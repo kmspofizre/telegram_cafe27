@@ -1,3 +1,4 @@
+import sqlalchemy.exc
 import telegram.error
 from telegram.ext import CommandHandler, ConversationHandler, MessageHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputMediaVideo
@@ -211,7 +212,10 @@ def choose_restaurant_type(callback_data, user_tgid, user_tlg, context):
         d['html_short'] = html_short
         d['media'] = media
         d['favourite'] = restaurant.id in user_fav
-        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        try:
+            d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        except sqlalchemy.exc.NoResultFound:
+            d['owner_link'] = 'https://cafe27.ru'
         d['vip_owner'] = restaurant.vip_owner
         to_send.append(d)
 
@@ -2296,7 +2300,8 @@ def successful_payment(update, context):
         user=user.id,
         transaction_amount=update.message.successful_payment.total_amount / 100,
         email=update.message.successful_payment.order_info.email,
-        phone=update.message.successful_payment.order_info.phone_number
+        phone=update.message.successful_payment.order_info.phone_number,
+        payment_date=datetime.datetime.now()
     )
     db_sess.add(new_payment)
     context.bot.deleteMessage(update.message.chat_id, context.chat_data['pay_message'])

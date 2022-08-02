@@ -14,5 +14,6 @@ class Payment(SqlAlchemyBase):
     transaction_amount = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
     email = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     phone = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
+    payment_date = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False)
 
     user_id = orm.relation('User')
