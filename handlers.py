@@ -1216,7 +1216,8 @@ def show_my_rests(user_tg, context):
         d['id'] = restaurant.id
         d['html_short'] = html_short
         d['media'] = media
-        d['favourite'] = True
+        print(restaurant.id in list(map(int, user.favourite.split(', '))))
+        d['favourite'] = restaurant.id in list(map(int, user.favourite.split(', ')))
         try:
             d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
         except sqlalchemy.exc.NoResultFound:
@@ -1627,22 +1628,42 @@ def text_handler(update, context):
         elif update.message.text in ('Мои заведения', 'My restaurants'):
             to_show = show_my_rests(update.message.from_user, context)
             for elem in to_show:
-                try:
-                    user_language = context.chat_data['language']
-                    if user_language == 'ru':
-                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
-                        text = json_messages_data['messages']['ru']['actions']
-                    else:
-                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
-                        text = json_messages_data['messages']['en']['actions']
-                except KeyError:
-                    if update.message.from_user.language_code == 'ru':
-                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
-                        text = json_messages_data['messages']['ru']['actions']
-                    else:
-                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
-                        text = json_messages_data['messages']['en']['actions']
-                fav_button_call = f"delfav_{elem['id']}"
+
+                if elem['favourite']:
+                    try:
+                        user_language = context.chat_data['language']
+                        if user_language == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                    except KeyError:
+                        if update.message.from_user.language_code == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                    fav_button_call = f"delfav_{elem['id']}"
+                else:
+                    try:
+                        user_language = context.chat_data['language']
+                        if user_language == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                    except KeyError:
+                        if update.message.from_user.language_code == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                    fav_button_call = f"addfav_{elem['id']}"
+
                 media_message = context.bot.send_media_group(update.message.from_user.id,
                                                              media=elem['media'])
                 tlg_button.url = elem['owner_link']
