@@ -13,7 +13,7 @@ class Restaurant(SqlAlchemyBase):
     address = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     coordinates = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
     description = sqlalchemy.Column(sqlalchemy.TEXT, nullable=False)
-    phone = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=False)
+    phone = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
     working_hours = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
     requested = sqlalchemy.Column(sqlalchemy.Integer, default=0, nullable=False)
     in_favourite = sqlalchemy.Column(sqlalchemy.Integer, default=0)

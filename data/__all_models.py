@@ -8,3 +8,4 @@ from . import scores
 from . import payments
 from . import banners
 from . import tasks
+from . import polls

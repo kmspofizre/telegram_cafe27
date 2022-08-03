@@ -36,7 +36,6 @@ $tags
 <b>$name</b>
 
 $description
-$stars $average_score ($number_of_scores)
 ⏱ $working_hours
 💵 $average_price
 📍 $address""")
@@ -58,7 +57,6 @@ $tags
 <b>$name</b>
 
 $description
-$stars $average_score ($number_of_scores)
 ⏱ $working_hours
 💵 $average_price
 📍 $address_en""")

@@ -32,19 +32,21 @@
                       </tr>
                   </thead>
                   <tbody>
+                  {% for elem in banners %}
                       <tr>
                           <td>
-                              1
+                              {{elem.id}}
                           </td>
                           <td>
-                              Текст баннера
+                              {{ elem.text }}
                           </td>
                       </tr>
+                  {% endfor %}
                   </tbody>
               </table>
             </div>
             <!-- /.card-body -->
           </div>
-          <a><button type="button" class="btn btn-success">Новый</button></a>
+          <a href="/add_banner"><button type="button" class="btn btn-success">Новый</button></a>
     </section>
   {% endblock %}

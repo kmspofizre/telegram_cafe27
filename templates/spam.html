@@ -15,7 +15,7 @@
             <p>
                 {{ form.mes.label }}<br>
                 {{ form.mes(class="form-control") }}
-                {% for error in form.words.errors %}
+                {% for error in form.mes.errors %}
             <div class="alert alert-danger" role="alert">
                 {{ error }}
             </div>
@@ -23,7 +23,7 @@
             </p>
             <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
         </form>
-        <div class="card-body p-0">
+         <div class="card-body p-0">
             <table class="table table-striped projects">
                 <thead>
                     <tr>
@@ -39,17 +39,19 @@
                     </tr>
                 </thead>
                 <tbody>
+                {% for user in banned_users %}
                     <tr>
                         <td>
-                            1
+                            {{user.id}}
                         </td>
                         <td>
-                            Имя
+                            {{user.name}}
                         </td>
                         <td class="project_progress">
-                          Никнейм
+                            {{user.username}}
                         </td>
                     </tr>
+                {% endfor %}
                 </tbody>
             </table>
           </div>

@@ -61,6 +61,13 @@
                 <label for="formFile" class="form-label">{{ form.media.label }}</label>
                 {{ form.media(class="form-control", type="file", id="formFile") }}
               </div>
+            <p>
+                <span style="width: 20%; padding-top: 20px">{{ form.on_maps.label }}</span><span style="width: 80%">{{ form.on_maps(class="form-control") }}</span>
+                {% for error in form.on_maps.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
             <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
         </form>
     </section>

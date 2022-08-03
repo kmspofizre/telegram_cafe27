@@ -3,7 +3,7 @@
     <section class="content">
         <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Статьи</h3>
+              <h3 class="card-title">Опросы</h3>
 
               <div class="card-tools">
                 <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
@@ -22,37 +22,45 @@
                               #
                           </th>
                           <th style="width: 20%">
-                              Header
+                              Название
                           </th>
                           <th>
-                              Text (first 100 chars)
+                              Варианты
+                          </th>
+                          <th>
+                           Дата публикации
                           </th>
                           <th style="width: 20%">
                           </th>
                       </tr>
                   </thead>
                   <tbody>
+                  {% for elem in polls %}
                       <tr>
                           <td>
-                              1
+                              {{elem.id}}
                           </td>
                           <td>
-                              Заголовок статьи
+                              {{elem.header}}
                           </td>
-                          <td class="project_progress">
-                            Текст статьи
+                          <td>
+                              {{ elem.variants }}
                           </td>
-                          <td class="project-actions text-right">
+                          <td>
+                              {{elem.datetime}}
+                          </td>
+                          <td>
                             <a class="btn btn-primary btn-sm" href="#">
-                                Запланировать
+                                Результаты
                             </a>
                           </td>
                       </tr>
+                  {% endfor %}
                   </tbody>
               </table>
             </div>
             <!-- /.card-body -->
           </div>
-          <a><button type="button" class="btn btn-success">Новая</button></a>
+          <a href="/add_poll"><button type="button" class="btn btn-success">Новый</button></a>
     </section>
-{% endblock %}
+  {% endblock %}

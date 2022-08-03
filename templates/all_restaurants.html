@@ -22,25 +22,38 @@
                               #
                           </th>
                           <th style="width: 20%">
-                              Name
+                              Название
                           </th>
                           <th>
-                              Address
+                              Адрес
+                          </th>
+                          <th>
+                              Рейтинг
+                          </th>
+                          <th>
+                              Запросов
                           </th>
                           <th style="width: 20%">
                           </th>
                       </tr>
                   </thead>
                   <tbody>
+                  {% for elem in restaurants %}
                       <tr>
                           <td>
-                              1
+                              {{ elem.id }}
                           </td>
                           <td>
-                              Название заведения
+                              {{elem.name}}
                           </td>
                           <td class="project_progress">
-                            Адрес заведения
+                              {{ elem.address }}
+                          </td>
+                          <td>
+                              {{elem.score}}
+                          </td>
+                          <td>
+                              {{elem.requested}}
                           </td>
                           <td class="project-actions text-right">
                             <a class="btn btn-primary btn-sm" href="#">
@@ -48,11 +61,12 @@
                             </a>
                           </td>
                       </tr>
+                  {% endfor %}
                   </tbody>
               </table>
             </div>
             <!-- /.card-body -->
           </div>
-          <a><button type="button" class="btn btn-success">Добавить</button></a>
+          <a href="/add_restaurant"><button type="button" class="btn btn-success">Добавить</button></a>
     </section>
  {% endblock %}

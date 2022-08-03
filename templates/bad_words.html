@@ -39,17 +39,19 @@
                     </tr>
                 </thead>
                 <tbody>
+                {% for user in banned_users %}
                     <tr>
                         <td>
-                            1
+                            {{user.id}}
                         </td>
                         <td>
-                            Имя
+                            {{user.name}}
                         </td>
                         <td class="project_progress">
-                          Никнейм
+                            {{user.username}}
                         </td>
                     </tr>
+                {% endfor %}
                 </tbody>
             </table>
           </div>

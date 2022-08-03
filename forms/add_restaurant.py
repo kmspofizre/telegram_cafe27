@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, SelectField, SelectMultipleField, MultipleFileField
+from wtforms import StringField, SubmitField, TextAreaField, SelectField,\
+    SelectMultipleField, MultipleFileField, BooleanField
 from wtforms.validators import DataRequired
 from data import db_session
 from data.restaurant_types import RestaurantTypes
@@ -20,4 +21,5 @@ class AddRestaurantForm(FlaskForm):
                                 validators=[DataRequired()])
     operating = StringField('Режим работы', validators=[DataRequired()])
     media = MultipleFileField('Фото', validators=[DataRequired()])
+    on_maps = BooleanField('Заведение есть на Яндекс Картах?')
     submit = SubmitField('Добавить')

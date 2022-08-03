@@ -33,26 +33,35 @@
                         <th>
                             User Link
                         </th>
+                        <th>
+                            VIP
+                        </th>
                       </tr>
                   </thead>
                   <tbody>
+                  {% for elem in users %}
                       <tr>
                           <td>
-                              1
+                              {{elem.id}}
                           </td>
                           <td>
-                              Название заведения
+                              {{elem.name}}
                           </td>
                           <td class="project_progress">
-                            Адрес заведения
+                              {{elem.username}}
                           </td>
                           <td class="project_progress">
-                            02.08.2022
+                              {{elem.date_of_appearance}}
                           </td>
                           <td class="project_progress">
-                            Link
+                              {{ elem.user_link }}
+                          </td>
+
+                          <td class="project_progress">
+                              {{ elem.is_vip }}
                           </td>
                       </tr>
+                  {% endfor %}
                   </tbody>
               </table>
             </div>

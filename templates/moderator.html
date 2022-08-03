@@ -19,15 +19,16 @@
                     </tr>
                 </thead>
                 <tbody>
+                {% for elem in messages %}
                     <tr>
                         <td>
                             #
                         </td>
                         <td>
-                            Сообщение
+                            {{elem[0]}}
                         </td>
                         <td class="project_progress">
-                            Нынешний текст
+                            {{elem[1]}}
                         </td>
                         <td class="project-actions text-right">
                           <a class="btn btn-primary btn-sm" href="#">
@@ -35,9 +36,22 @@
                           </a>
                         </td>
                     </tr>
+                {% endfor %}
                 </tbody>
             </table>
-            <a><button type="button" class="btn btn-success">Добавить опрос</button></a>
           </div>
+        <form method="post" novalidate enctype="multipart/form-data" style="width: 50%">
+            {{ form.hidden_tag() }}
+            <p>
+                {{ form.price.label }}<br>
+                {{ form.price(class="form-control") }}
+                {% for error in form.price.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
+        </form>
     </section>
 {% endblock %}

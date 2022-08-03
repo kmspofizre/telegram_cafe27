@@ -8,7 +8,7 @@ class FileException(Exception):
 
 def file_saver(file):
     try:
-        new_file = File.download(file, custom_path=f'images/{secrets.token_urlsafe(16)}.jpg')
+        new_file = File.download(file, custom_path=f'static/img/{secrets.token_urlsafe(16)}.jpg')
     except FileException:
-        new_file = File.download(file, custom_path=f'images/{secrets.token_urlsafe(16)}.png')
+        new_file = File.download(file, custom_path=f'static/img/{secrets.token_urlsafe(16)}.png')
     return new_file

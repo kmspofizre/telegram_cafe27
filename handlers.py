@@ -249,7 +249,10 @@ def add_to_favourite(user_tg, restaurant, message, chat, context, media_message,
         chosen_restaurant.in_favourite += 1
     except TypeError:
         chosen_restaurant.in_favourite = 1
-    restaurant_owner = db_sess.query(User).filter(User.id == chosen_restaurant.owner).one().user_link
+    try:
+        restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    except sqlalchemy.exc.NoResultFound:
+        restaurant_owner = 'https://cafe27.ru'
     tlg_button.url = restaurant_owner
     describe.callback_data = f"des_{restaurant}_{media_message}_{dm}"
     rate.callback_data = f"rate_{restaurant}_{media_message}_{dm}"
@@ -287,8 +290,10 @@ def del_from_favourite(user_tg, restaurant, message, chat, context, media_messag
         chosen_restaurant.in_favourite -= 1
     except TypeError:
         chosen_restaurant.in_favourite = 0
-    restaurant_owner = db_sess.query(User).filter(User.id == chosen_restaurant.owner).one().user_link
-    tlg_button.url = restaurant_owner
+    try:
+        restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    except sqlalchemy.exc.NoResultFound:
+        restaurant_owner = 'https://cafe27.ru'
     describe.callback_data = f"des_{restaurant}_{media_message}_{dm}"
     rate.callback_data = f"rate_{restaurant}_{media_message}_{dm}"
     inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
@@ -456,7 +461,10 @@ def show_full_description(restaurant, message, chat, context, language, message_
             text = json_data['messages']['en']['actions']
             text1 = json_data['messages']['en']['distance']
             keyboard = geoposition_keyboard_en
-    restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    try:
+        restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    except sqlalchemy.exc.NoResultFound:
+        restaurant_owner = 'https://cafe27.ru'
     tlg_button.url = restaurant_owner
     rate.callback_data = f"rate_{restaurant.id}_{message}_min"
     if fav == 'add':
@@ -629,7 +637,11 @@ def show_short_description(user_tg, context, rest, message, text_message_id, jso
     media.extend(media_ph)
     media[0].caption = html_short
     media[0].parse_mode = 'HTML'
-    tlg_button.url = user.user_link
+    try:
+        restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    except sqlalchemy.exc.NoResultFound:
+        restaurant_owner = 'https://cafe27.ru'
+    tlg_button.url = restaurant_owner
     rate.callback_data = f"rate_{restaurant.id}_{message}_des"
     if fav == 'add':
         fav_button.callback_data = f"addfav_{restaurant.id}_{message}_des"
@@ -666,7 +678,7 @@ def start(update, context):
             new_user = User(
                 telegram_id=update.message.from_user.id,
                 username=update.message.from_user.username,
-                date_of_appearance=datetime.date.today(),
+                date_of_appearance=datetime.datetime.now(),
                 name=update.message.from_user.full_name,
                 user_link=update.message.from_user.link
             )
@@ -800,7 +812,10 @@ def show_favourite(user_tg, context):
         d['html_short'] = html_short
         d['media'] = media
         d['favourite'] = True
-        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        try:
+            d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        except sqlalchemy.exc.NoResultFound:
+            d['owner_link'] = 'https://cafe27.ru'
         d['vip_owner'] = restaurant.vip_owner
         to_send.append(d)
 
@@ -936,7 +951,10 @@ def choose_restaurant_type_score(callback_data, user_tgid, user_tlg, context):
         d['html_short'] = html_short
         d['media'] = media
         d['favourite'] = restaurant.id in user_fav
-        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        try:
+            d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        except sqlalchemy.exc.NoResultFound:
+            d['owner_link'] = 'https://cafe27.ru'
         d['vip_owner'] = restaurant.vip_owner
         to_send.append(d)
 
@@ -1070,7 +1088,10 @@ def choose_restaurant_type_popularity(user_tgid, user_tlg, context):
         d['html_short'] = html_short
         d['media'] = media
         d['favourite'] = restaurant.id in user_fav
-        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        try:
+            d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        except sqlalchemy.exc.NoResultFound:
+            d['owner_link'] = 'https://cafe27.ru'
         d['vip_owner'] = restaurant.vip_owner
         d['requests'] = restaurant.requested
         to_send.append(d)
@@ -1196,7 +1217,10 @@ def show_my_rests(user_tg, context):
         d['html_short'] = html_short
         d['media'] = media
         d['favourite'] = True
-        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        try:
+            d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        except sqlalchemy.exc.NoResultFound:
+            d['owner_link'] = 'https://cafe27.ru'
         d['vip_owner'] = restaurant.vip_owner
         to_send.append(d)
 
@@ -1322,7 +1346,10 @@ def show_one_rest(rest_id, context, user_tg):
     d['html_short'] = html_short
     d['media'] = media
     d['favourite'] = restaurant.id in user_fav
-    d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    try:
+        d['owner_link'] = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    except sqlalchemy.exc.NoResultFound:
+        d['owner_link'] = 'https://cafe27.ru'
 
     return d
 
@@ -1817,7 +1844,11 @@ def change_inline(chat, message_id, user_tg, context, json_data, rest, message):
         else:
             fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en(fav, 'des')
             text = json_data['messages']['en']['actions']
-    tlg_button.url = user.user_link
+    try:
+        restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+    except sqlalchemy.exc.NoResultFound:
+        restaurant_owner = 'https://cafe27.ru'
+    tlg_button.url = restaurant_owner
     rate.callback_data = f"rate_{restaurant.id}_{message}_des"
     if fav == 'add':
         fav_button.callback_data = f"addfav_{restaurant.id}_{message}_des"
@@ -2601,14 +2632,14 @@ def eighth_response(update, context):
     try:
         user_language = context.chat_data['language']
         if user_language == 'ru':
-            text = json_messages_data['messages']['ru']['anything']
+            text = json_messages_data['messages']['ru']['on_maps']
         else:
-            text = json_messages_data['messages']['en']['anything']
+            text = json_messages_data['messages']['en']['on_maps']
     except KeyError:
         if update.message.from_user.language_code == 'ru':
-            text = json_messages_data['messages']['ru']['anything']
+            text = json_messages_data['messages']['ru']['on_maps']
         else:
-            text = json_messages_data['messages']['en']['anything']
+            text = json_messages_data['messages']['en']['on_maps']
     if not context.chat_data['new_rest']['end']:
         update.message.reply_text(text)
         context.chat_data['new_rest']['end'] = True
@@ -2638,33 +2669,48 @@ def ninth_response(update, context):
             text = json_messages_data['messages']['en']['end_of_conversation']
     cur_user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).one()
     update.message.reply_text(text)
-    search_params = {
-        "apikey": organization_api,
-        "text": f"{context.chat_data['new_rest']['name']} {context.chat_data['new_rest']['address']}",
-        "lang": "ru_RU",
-        "type": "biz",
-        "results": '1'
-    }
+    if update.message.text.lower() in ('да', 'yes'):
+        search_params = {
+            "apikey": organization_api,
+            "text": f"{context.chat_data['new_rest']['name']} {context.chat_data['new_rest']['address']}",
+            "lang": "ru_RU",
+            "type": "biz",
+            "results": '1'
+        }
 
-    rest_response = requests.get(search_api_server, params=search_params).json()
-    try:
-        address = ', '.join(rest_response['features'][0]['properties']['CompanyMetaData']['address'].split(', ')[1:])
-    except (KeyError, IndexError):
+        rest_response = requests.get(search_api_server, params=search_params).json()
+        try:
+            address = ', '.join(rest_response['features'][0]['properties']['CompanyMetaData']['address'].split(', ')[1:])
+        except (KeyError, IndexError):
+            address = context.chat_data['new_rest']['address']
+        try:
+            working_hours = rest_response['features'][0]['properties']['CompanyMetaData']['Hours']['text']
+        except (KeyError, IndexError):
+            working_hours = context.chat_data['new_rest']['working_hours']
+        try:
+            phone = rest_response['features'][0]['properties']['CompanyMetaData']['Phones'][0]['formatted']
+        except (KeyError, IndexError):
+            phone = context.chat_data['new_rest']['phone']
+        try:
+            name = rest_response['features'][0]['properties']['name']
+        except (KeyError, IndexError):
+            name = context.chat_data['new_rest']['name']
+        coordinates = ','.join(map(str, [rest_response['features'][0]['geometry']['coordinates'][1],
+                                         rest_response['features'][0]['geometry']['coordinates'][0]]))
+    else:
+        search_params = {
+            "apikey": organization_api,
+            "text": f"{context.chat_data['new_rest']['address']}",
+            "lang": "ru_RU",
+            "results": '1'
+        }
+        rest_response = requests.get(search_api_server, params=search_params).json()
+        coordinates = ','.join(map(str, [rest_response['features'][0]['geometry']['coordinates'][1],
+                                         rest_response['features'][0]['geometry']['coordinates'][0]]))
         address = context.chat_data['new_rest']['address']
-    try:
-        working_hours = rest_response['features'][0]['properties']['CompanyMetaData']['Hours']['text']
-    except (KeyError, IndexError):
         working_hours = context.chat_data['new_rest']['working_hours']
-    try:
-        phone = rest_response['features'][0]['properties']['CompanyMetaData']['Phones'][0]['formatted']
-    except (KeyError, IndexError):
         phone = context.chat_data['new_rest']['phone']
-    try:
-        name = rest_response['features'][0]['properties']['name']
-    except (KeyError, IndexError):
         name = context.chat_data['new_rest']['name']
-    coordinates = ','.join(map(str, [rest_response['features'][0]['geometry']['coordinates'][1],
-                                     rest_response['features'][0]['geometry']['coordinates'][0]]))
     texts = [name,
              context.chat_data['new_rest']['description'],
              address,
