@@ -88,22 +88,22 @@
     "VIP": 50000
   },
   "API_keys": {
-    "translator": "",
-    "organization_search": "",
-    "folder_id": "",
+    "translator": "AQVNxYvS9dmmYoEfaGv-wVzilJ4nNTD4HYC3eYw2",
+    "organization_search": "51d82b8b-a387-4c06-984c-63fe4963b74c",
+    "folder_id": "b1gtvtblgr8vr0aplq5u",
     "search_api_server": "https://search-maps.yandex.ru/v1/",
     "translate_api_server": "https://translate.api.cloud.yandex.net/translate/v2/translate",
     "map_api_server": "http://static-maps.yandex.ru/1.x/"
   },
   "links": {
-    "chat_link": "",
-    "moder_link": "",
+    "chat_link": "https://t.me/+9dpfvhkdyiJmNjYy",
+    "moder_link": "https://t.me/kmspofizre",
     "bot_stat": "",
     "chat_stat": "",
     "channel_stat_ru": "",
     "channel_stat_en": "",
-    "channel_link": "",
-    "channel_link_en": ""
+    "channel_link": "https://t.me/cafe27test",
+    "channel_link_en": "https://t.me/cafe27testen"
   },
   "ban_words": [
     "\u043c\u0443\u0434\u0430\u043a",
@@ -122,7 +122,13 @@
       "number_of_messages": 4
     }
   },
-  "chat_id": "",
-  "channel_id": "",
-  "channel_en_id": ""
+  "chat_id": -1001744628915,
+  "channel_id": -1001796607404,
+  "channel_en_id": -1001793306478,
+  "tokens": {
+    "main_bot_token": "",
+    "chat_bot_token": "",
+    "connector_bot_token": "",
+    "payment_token": ""
+  }
 }

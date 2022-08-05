@@ -5,6 +5,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, PreCh
 from telegram.ext import CallbackQueryHandler
 from handlers import start, text_handler, callback_hand, location_hand, checkout_process, successful_payment
 from handlers import restaurant_conversation, types_init
+import json
 
 
 logging.basicConfig(
@@ -15,7 +16,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-TOKEN = ''
+with open('json/messages.json') as json_d:
+    json_keys_data = json.load(json_d)
+
+
+TOKEN = json_keys_data['tokens']['main_bot_token']
 
 
 def main():

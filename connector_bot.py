@@ -4,6 +4,7 @@ import logging
 from telegram.ext import Updater, MessageHandler, Filters
 from data import db_session
 from data.tasks import Task
+import json
 
 
 logging.basicConfig(
@@ -13,7 +14,12 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-TOKEN = ''
+
+with open('json/messages.json') as json_d:
+    json_keys_data = json.load(json_d)
+
+
+TOKEN = json_keys_data['tokens']['connector_bot_token']
 
 
 db_session.global_init("db/cafe27.db")

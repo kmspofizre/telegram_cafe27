@@ -1,6 +1,7 @@
 import logging
 from chat_bot_handlers import start, applications, confirm, reject,\
     text_handler, blacklist, unban, translate, bot_help, link, poll_answer_handler
+import json
 
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, PollAnswerHandler
@@ -13,7 +14,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-TOKEN = ''
+with open('json/messages.json') as json_d:
+    json_keys_data = json.load(json_d)
+
+
+TOKEN = json_keys_data['tokens']['chat_bot_token']
 
 
 def main():

@@ -39,7 +39,7 @@ ph_ext = tuple(['.jpg', '.jpeg', '.png'])
 with open('json/messages.json') as json_d:
     json_keys_data = json.load(json_d)
 
-P_TOKEN = "381764678:TEST:40489"
+P_TOKEN = json_keys_data['tokens']['payment_token']
 API_KEY = json_keys_data['API_keys']['translator']
 folder_id = json_keys_data['API_keys']['folder_id']
 organization_api = json_keys_data['API_keys']['organization_search']
