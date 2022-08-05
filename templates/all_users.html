@@ -36,6 +36,9 @@
                         <th>
                             VIP
                         </th>
+                        <th>
+
+                        </th>
                       </tr>
                   </thead>
                   <tbody>
@@ -60,6 +63,19 @@
                           <td class="project_progress">
                               {{ elem.is_vip }}
                           </td>
+                          {% if elem.moderator %}
+                          <td class="project_progress">
+                              <a class="btn btn-primary btn-sm" href="/not_moder/{{elem.id}}">
+                                Сделать обычным пользователем
+                            </a>
+                          </td>
+                          {% else %}
+                          <td class="project_progress">
+                              <a class="btn btn-primary btn-sm" href="/moder/{{elem.id}}">
+                                Сделать модератором
+                            </a>
+                          </td>
+                          {% endif %}
                       </tr>
                   {% endfor %}
                   </tbody>

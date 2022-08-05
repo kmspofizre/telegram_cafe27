@@ -1,10 +1,7 @@
-from flask import Flask, render_template, redirect, abort, url_for, request
-from flask_login import LoginManager, login_required, \
-    login_user, current_user, logout_user
+from flask import Flask, render_template, redirect, request
 import json
 import requests
 from data import db_session
-from data.admins import Admins
 from data.tasks import Task
 from data.restaurants import Restaurant
 from data.restaurant_types import RestaurantTypes
@@ -24,6 +21,7 @@ from forms.add_type import TypeForm
 from forms.add_poll import PollForm
 from forms.add_banner import BannerForm
 from forms.edit_post import EditPostForm
+from forms.edit_restaurant import EditRestaurantForm
 import datetime
 import os
 import secrets
@@ -33,7 +31,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'nnwllknwthscd'
 db_session.global_init("db/cafe27.db")
 db_sess = db_session.create_session()
-P_TOKEN = "381764678:TEST:40489"
+P_TOKEN = ""
 with open('json/messages.json') as json_d:
     json_keys_data = json.load(json_d)
 API_KEY = json_keys_data['API_keys']['translator']
@@ -43,14 +41,6 @@ search_api_server = json_keys_data['API_keys']['search_api_server']
 translate_api_server = json_keys_data['API_keys']["translate_api_server"]
 map_api_server = json_keys_data['API_keys']["map_api_server"]
 target_language = 'en'
-# login_manager = LoginManager()
-# login_manager.init_app(app)
-
-
-# @login_manager.user_loader
-# def load_user(user_id):
-   #  db_sess = db_session.create_session()
-    #  return db_sess.query(Admins).get(user_id)
 
 
 def process_images(images):
@@ -79,13 +69,23 @@ def index():
 
 @app.route('/all_tasks')
 def all_tasks():
-    tasks = db_sess.query(Task).all()
+    tasks = db_sess.query(Task).filter(Task.task_type.notlike(f"%del%"))
     return render_template('all_tasks.html', title='Планировщик', tasks=tasks)
 
 
 @app.route('/delete_task/<int:task_id>')
 def delete_task(task_id):
     task = db_sess.query(Task).filter(Task.id == task_id).one()
+    del_task = Task(
+        task_type=f'del_{task.task_type}_{task.item_id}',
+        item_id=10000000,
+        datetime=datetime.datetime.now(),
+        in_work=0
+    )
+    if task.task_type == 'poll':
+        poll_to_delete = db_sess.query(Poll).filter(Poll.id == task.item_id).one()
+        db_sess.delete(poll_to_delete)
+    db_sess.add(del_task)
     db_sess.delete(task)
     db_sess.commit()
     return redirect('../../all_tasks')
@@ -110,7 +110,8 @@ def planform(rest_id):
             new_task = Task(
                 task_type='restaurant',
                 item_id=rest_id,
-                datetime=date
+                datetime=date,
+                in_work=0
             )
             db_sess.add(new_task)
             db_sess.commit()
@@ -147,7 +148,7 @@ def add_restaurant():
         average = form.average.data
         types = form.types.data
         operating = form.operating.data
-        media = form.media.raw_data
+        media = form.media.raw_data[:8]
         on_maps = form.on_maps.data
         if on_maps:
             search_params = {
@@ -382,7 +383,8 @@ def planpost(post_id):
             new_task = Task(
                 task_type='post',
                 item_id=post_id,
-                datetime=date
+                datetime=date,
+                in_work=0
             )
             db_sess.add(new_task)
             db_sess.commit()
@@ -444,10 +446,12 @@ def add_poll():
         if date > datetime.datetime.now():
             header = form.name.data
             variants = form.variants.data
+            is_anon = form.is_anon.data
             new_poll = Poll(
                 header=header,
                 variants=variants,
-                datetime=date
+                datetime=date,
+                is_anon=is_anon
             )
             db_sess.add(new_poll)
             db_sess.commit()
@@ -455,7 +459,8 @@ def add_poll():
             new_task = Task(
                 task_type='poll',
                 item_id=poll.id,
-                datetime=poll.datetime
+                datetime=poll.datetime,
+                in_work=0
             )
             db_sess.add(new_task)
             db_sess.commit()
@@ -475,23 +480,27 @@ def add_banner():
                                  minute=form.publication_time.data.minute)
         if date > datetime.datetime.now():
             text = form.text.data
+            name = form.name.data
             image = form.image.raw_data
             try:
                 image = process_images(image)
             except IndexError:
-                image = ''
+                image = None
             new_banner = Banner(
+                name=name,
                 text=text,
                 image=image,
                 datetime=date
             )
             db_sess.add(new_banner)
             db_sess.commit()
-            banner = db_sess.query(Banner).filter(Banner.datetime == date, Banner.text == text).one()
+            banner = db_sess.query(Banner).filter(Banner.datetime == date, Banner.text == text,
+                                                  Banner.name == name).all()[0]
             new_task = Task(
                 task_type='banner',
                 item_id=banner.id,
-                datetime=banner.datetime
+                datetime=banner.datetime,
+                in_work=0
             )
             db_sess.add(new_task)
             db_sess.commit()
@@ -503,7 +512,10 @@ def add_banner():
 @app.route('/edit_post/<int:post_id>', methods=['GET', 'POST'])
 def edit_post(post_id):
     post = db_sess.query(Posts).filter(Posts.id == post_id).one()
-    images = post.media.split(';')
+    if post.media is not None:
+        images = post.media.split(';')
+    else:
+        images = ['']
 
     form = EditPostForm()
     if form.validate_on_submit():
@@ -514,12 +526,18 @@ def edit_post(post_id):
         a = set(images)
         b = set(new_images)
         pictures_remains = list(a & b)
+
         try:
             images = process_images(media)
             pictures_remains.extend(images.split(';'))
         except IndexError:
             pass
-        post.media = ';'.join(pictures_remains)
+        while '' in pictures_remains:
+            pictures_remains.remove('')
+        if len(pictures_remains) != 0:
+            post.media = ';'.join(pictures_remains)
+        else:
+            post.media = None
         db_sess.commit()
         return redirect('/all_posts')
     sp = []
@@ -545,6 +563,121 @@ def edit_category(type_id):
     form.name.data = category.type_name
     form.english_name.data = category.type_name_en
     return render_template('add_type.html', form=form)
+
+
+@app.route('/edit_restaurant/<int:rest_id>', methods=['GET', 'POST'])
+def edit_restaurant(rest_id):
+    restaurant = db_sess.query(Restaurant).filter(Restaurant.id == rest_id).one()
+    form = EditRestaurantForm()
+    images = restaurant.media.split(';')
+    if form.validate_on_submit():
+        restaurant.name = form.name.data
+        restaurant.name_en = form.name_en.data
+        restaurant.description = form.description.data
+        restaurant.description_en = form.description_en.data
+        restaurant.address = form.address.data
+        restaurant.address_en = form.address_en.data
+        restaurant.average_price = form.average.data
+        types = form.types.data
+        types = db_sess.query(RestaurantTypes).filter(RestaurantTypes.type_name.in_(types)).all()
+        types = ', '.join(map(lambda x: str(x.id), types))
+        restaurant.type = types
+        new_images = form.current_media.data.split(';')
+        media = form.media.raw_data
+        new_main_photo = form.new_main_pic.raw_data
+        a = set(images)
+        b = set(new_images)
+        pictures_remains = list(a & b)
+        if images[0] in pictures_remains and not (new_main_photo[0].filename == '' and len(new_main_photo) == 1):
+            pictures_remains.remove(images[0])
+            if images[0] in pictures_remains:
+                pictures_remains.remove(images[0])
+            new_photo = process_images(new_main_photo)
+            pictures_remains.insert(0, new_photo)
+            pictures_remains.insert(0, new_photo)
+        else:
+            while images[0] in pictures_remains:
+                pictures_remains.remove(images[0])
+            pictures_remains.insert(0, images[0])
+            pictures_remains.insert(0, images[0])
+        if not (len(media) == 1 and media[0].filename == ''):
+            new_media = process_images(media).split(';')
+            pictures_remains.extend(new_media)
+        while '' in pictures_remains:
+            pictures_remains.remove('')
+        final_pictures = ';'.join(pictures_remains[:8])
+        restaurant.media = final_pictures
+        if form.change_geopos:
+            search_params = {
+                "apikey": organization_api,
+                "text": f"{form.address.data}",
+                "lang": "ru_RU",
+                "results": '1'
+            }
+            rest_response = requests.get(search_api_server, params=search_params).json()
+            coordinates = ','.join(map(str, [rest_response['features'][0]['geometry']['coordinates'][1],
+                                             rest_response['features'][0]['geometry']['coordinates'][0]]))
+            restaurant.coordinates = coordinates
+        db_sess.commit()
+        return redirect('/all_restaurants')
+    sp = []
+    for elem in images:
+        if elem != '':
+            sp.append('/'.join(elem.split('/')[1:]))
+    form.name.data = restaurant.name
+    form.description.data = restaurant.description
+    form.address.data = restaurant.address
+    form.average.data = restaurant.average_price
+    form.current_media.data = restaurant.media
+    form.operating.data = restaurant.working_hours
+    form.name_en.data = restaurant.name_en
+    form.description_en.data = restaurant.description_en
+    form.address_en.data = restaurant.address_en
+    form.operating_en.data = restaurant.working_hours_en
+    return render_template('edit_restaurant.html', form=form, images=sp)
+
+
+@app.route('/moder/<int:user_id>')
+def moder(user_id):
+    user = db_sess.query(User).filter(User.id == user_id).one()
+    user.moderator = 1
+    db_sess.commit()
+    return redirect('/all_users')
+
+
+@app.route('/not_moder/<int:user_id>')
+def not_moder(user_id):
+    user = db_sess.query(User).filter(User.id == user_id).one()
+    user.moderator = 0
+    db_sess.commit()
+    return redirect('/all_users')
+
+
+@app.route('/one_poll/<int:poll_id>')
+def one_poll(poll_id):
+    poll = db_sess.query(Poll).filter(Poll.id == poll_id).one()
+    try:
+        total_answers = sum(map(int, poll.answers.split(';')))
+    except AttributeError:
+        return redirect('../../all_polls')
+    variants = []
+    all_variants = poll.variants.split(';')
+    all_totals = poll.answers.split(';')
+    number_of_variants = len(poll.variants.split(';'))
+    for i in range(number_of_variants):
+        try:
+            variants.append([i + 1, all_variants[i], round((int(all_totals[i]) / total_answers) * 100)])
+        except ZeroDivisionError:
+            variants.append([i + 1, all_variants[i], 0])
+    return render_template('poll.html', variants=variants)
+
+
+@app.route('/unblock_user/<int:user_id>')
+def unblock_user(user_id):
+    user_blacklist = db_sess.query(Blacklist).filter(Blacklist.telegram_id == user_id).all()[0]
+    db_sess.delete(user_blacklist)
+    db_sess.commit()
+    return redirect('/../all_users')
 
 
 def main():

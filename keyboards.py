@@ -60,7 +60,8 @@ def get_info_keyboard_ru():
     with open('json/messages.json') as json_messages:
         json_messages_data = json.load(json_messages)
     info_keyboard_ru = InlineKeyboardMarkup([
-        [InlineKeyboardButton(text='Чат 💬', url=json_messages_data['links']['chat_link'])],
+        [InlineKeyboardButton(text='Чат 💬', url=json_messages_data['links']['chat_link']),
+         InlineKeyboardButton(text='Канал 📺', url=json_messages_data['links']['channel_link'])],
         [InlineKeyboardButton(text='О проекте ℹ️', callback_data='about')],
         [InlineKeyboardButton(text='Связь с модератором 📞', url=json_messages_data['links']['moder_link'])]
     ]
@@ -72,7 +73,8 @@ def get_info_keyboard_en():
     with open('json/messages.json') as json_messages:
         json_messages_data = json.load(json_messages)
     info_keyboard_en = InlineKeyboardMarkup([
-        [InlineKeyboardButton(text='Chat 💬', url=json_messages_data['links']['chat_link'])],
+        [InlineKeyboardButton(text='Chat 💬', url=json_messages_data['links']['chat_link']),
+         InlineKeyboardButton(text='Channel 📺', url=json_messages_data['links']['channel_link_en'])],
         [InlineKeyboardButton(text='About us ℹ️', callback_data='about')],
         [InlineKeyboardButton(text='Contact moderator 📞', url=json_messages_data['links']['moder_link'])]
     ])

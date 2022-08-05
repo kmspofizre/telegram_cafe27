@@ -101,3 +101,58 @@ $phone
 
 Владелец - $owner
 """)
+
+
+post_template = Temp("""
+<b>$header</b>
+$text
+""")
+
+
+channel_template_with_score = Temp("""
+$tags
+<b>$name</b>
+
+$description
+$stars $average_score ($number_of_scores)
+⏱ $working_hours
+💵 $average_price
+📍 $address
+"""
+)
+
+
+channel_template_without_score = Temp("""
+$tags
+<b>$name</b>
+
+$description
+⏱ $working_hours
+💵 $average_price
+📍 $address
+""")
+
+
+channel_template_with_score_en = Temp("""
+$tags
+<b>$name</b>
+
+$description
+$stars $average_score ($number_of_scores)
+⏱ $working_hours
+💵 $average_price
+📍 $address
+"""
+)
+
+
+channel_template_without_score_en = Temp("""
+$tags
+<b>$name</b>
+
+$description
+⏱ $working_hours
+💵 $average_price
+📍 $address
+""")
+

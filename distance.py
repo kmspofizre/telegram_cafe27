@@ -1,11 +1,10 @@
 import math
 
-
 # Определяем функцию, считающую расстояние между двумя точками, заданными координатами
 def lonlat_distance(a, b):
     degree_to_meters_factor = 111 * 1000  # 111 километров в метрах
-    a_lon, a_lat = a
-    b_lon, b_lat = b
+    a_lat, a_lon = a
+    b_lat, b_lon = b
 
     # Берем среднюю по широте точку и считаем коэффициент для нее.
     radians_lattitude = math.radians((a_lat + b_lat) / 2.)
@@ -19,3 +18,6 @@ def lonlat_distance(a, b):
     distance = math.sqrt(dx * dx + dy * dy)
 
     return distance
+
+
+

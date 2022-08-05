@@ -36,6 +36,8 @@
                         <th>
                             Username
                         </th>
+                        <th>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,6 +51,11 @@
                         </td>
                         <td class="project_progress">
                             {{user.username}}
+                        </td>
+                        <td class="project-actions text-right">
+                          <a class="btn btn-primary btn-sm" href="/unblock_user/{{ user.telegram_id }}">
+                              Разблокировать
+                          </a>
                         </td>
                     </tr>
                 {% endfor %}

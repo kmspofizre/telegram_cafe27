@@ -1,8 +1,9 @@
 import logging
-from chat_bot_handlers import start, applications, confirm, reject, text_handler, blacklist, unban, translate, bot_help
+from chat_bot_handlers import start, applications, confirm, reject,\
+    text_handler, blacklist, unban, translate, bot_help, link, poll_answer_handler
 
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, PollAnswerHandler
 
 
 logging.basicConfig(
@@ -12,7 +13,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-TOKEN = '5441072240:AAF5mrQ6BfsMqrV7cee_G2lQNq6RuownURY'
+TOKEN = ''
 
 
 def main():
@@ -58,7 +59,18 @@ def main():
                                   pass_user_data=True
                                   ))
     dp.add_handler(CommandHandler('help', bot_help))
+    dp.add_handler(CommandHandler('link', link,
+                                  pass_args=True,
+
+                                  pass_job_queue=True,
+
+                                  pass_chat_data=True,
+
+                                  pass_user_data=True
+                                  ))
     dp.add_handler(MessageHandler(Filters.text, text_handler))
+    dp.add_handler(PollAnswerHandler(poll_answer_handler))
+    update.bot.get_updates(allowed_updates=['channel_post', 'message', 'poll_answer'])
     update.start_polling()
     update.idle()
 

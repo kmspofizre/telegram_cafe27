@@ -30,6 +30,9 @@
                           <th>
                            Дата публикации
                           </th>
+                          <th>
+                           Анонимный
+                          </th>
                           <th style="width: 20%">
                           </th>
                       </tr>
@@ -50,9 +53,14 @@
                               {{elem.datetime}}
                           </td>
                           <td>
-                            <a class="btn btn-primary btn-sm" href="#">
+                              {{elem.is_anon}}
+                          </td>
+                          <td>
+                          {% if elem.is_anon == 0 %}
+                            <a class="btn btn-primary btn-sm" href="/one_poll/{{elem.id}}">
                                 Результаты
                             </a>
+                          {% endif %}
                           </td>
                       </tr>
                   {% endfor %}

@@ -37,6 +37,14 @@
                 {{ error }}
             </div>
             {% endfor %}
+            <p>
+                {{ form.is_anon.label }}<br>
+                {{ form.is_anon(class="form-control") }}
+                {% for error in form.is_anon.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
             <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
         </form>
     </section>

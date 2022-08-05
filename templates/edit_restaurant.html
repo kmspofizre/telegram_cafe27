@@ -66,11 +66,69 @@
             </div>
             {% endfor %}
             </p>
+            <p>
+                {{ form.new_main_pic.label }}<br>
+                {{ form.new_main_pic(class="form-control", type='file') }}
+                {% for error in form.new_main_pic.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+
             <div class="mb-3">
                 <label for="formFile" class="form-label">{{ form.media.label }}</label>
                 {{ form.media(class="form-control", type="file", id="formFile") }}
               </div>
+            <p>
+                {{ form.name_en.label }}<br>
+                {{ form.name_en(class="form-control") }}
+                {% for error in form.name_en.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.description_en.label }}<br>
+                {{ form.description_en(class="form-control") }}
+                {% for error in form.description_en.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.address_en.label }}<br>
+                {{ form.address_en(class="form-control") }}
+                {% for error in form.address_en.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.operating_en.label }}<br>
+                {{ form.operating_en(class="form-control") }}
+                {% for error in form.operating_en.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
+            <p>
+                {{ form.change_geopos.label }}<br>
+                {{ form.change_geopos(class="form-control") }}
+                {% for error in form.change_geopos.errors %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% endfor %}
+            </p>
             <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
         </form>
+        {% for image in images %}
+        <img src="{{url_for('static', filename=image )}}" style="width: 30%; height: 30%"><br>
+        {% endfor %}
     </section>
  {% endblock %}

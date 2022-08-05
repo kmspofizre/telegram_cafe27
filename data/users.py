@@ -17,3 +17,4 @@ class User(SqlAlchemyBase):
     name = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
     user_link = sqlalchemy.Column(sqlalchemy.VARCHAR, nullable=True)
     moderator = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False, default=0)
+    chat_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
