@@ -248,8 +248,10 @@ def add_restaurant():
 def statistics():
     with open('json/messages.json') as json_b:
         json_block_data = json.load(json_b)
-    link = json_block_data['links']['bot_stat']
-    return render_template('statistics.html', stat_type='Статистика бота', link=link)
+    stats = [['Статистика бота', json_block_data['links']['bot_stat']],
+             ['Статистика канала (RU)', json_block_data['links']['channel_stat_ru']],
+             ['Статистика канала (EN)', json_block_data['links']['channel_stat_en']]]
+    return render_template('statistics.html', stats=stats)
 
 
 @app.route('/invoice')
@@ -315,8 +317,8 @@ def all_posts():
 def chat_statistics():
     with open('json/messages.json') as json_b:
         json_block_data = json.load(json_b)
-    link = json_block_data['links']['chat_stat']
-    return render_template('statistics.html', stat_type='Статистика чата', link=link)
+    stats = [['Статистика чата', json_block_data['links']['chat_stat']]]
+    return render_template('statistics.html', stats=stats)
 
 
 @app.route('/moderator', methods=['GET', 'POST'])
