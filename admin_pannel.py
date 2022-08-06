@@ -26,7 +26,6 @@ import datetime
 import os
 import secrets
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'nnwllknwthscd'
 db_session.global_init("db/cafe27.db")
@@ -64,13 +63,14 @@ def process_images(images):
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template('index.html', title='Dashboard')
+    return render_template('index.html', title='Dashboard', datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/all_tasks')
 def all_tasks():
     tasks = db_sess.query(Task).filter(Task.task_type.notlike(f"%del%"))
-    return render_template('all_tasks.html', title='Планировщик', tasks=tasks)
+    return render_template('all_tasks.html', title='Планировщик', tasks=tasks,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/delete_task/<int:task_id>')
@@ -94,7 +94,8 @@ def delete_task(task_id):
 @app.route('/planner')
 def planner():
     restaurants = db_sess.query(Restaurant).all()
-    return render_template('planner.html', title='Планировщик', restaurants=restaurants)
+    return render_template('planner.html', title='Планировщик', restaurants=restaurants,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/planform/<int:rest_id>', methods=["GET", "POST"])
@@ -116,9 +117,10 @@ def planform(rest_id):
             db_sess.add(new_task)
             db_sess.commit()
         else:
-            return render_template('planform.html', form=form)
+            return render_template('planform.html', form=form,
+                                   datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
         return redirect('/../../all_tasks')
-    return render_template('planform.html', form=form)
+    return render_template('planform.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/user_filter', methods=["GET", "POST"])
@@ -128,14 +130,14 @@ def user_filter():
         return render_template('user_filter.html', categories=categories)
     elif request.method == 'POST':
         ids = list(map(int, list(dict(request.form.to_dict()).keys())))
-        print(list(ids))
         for elem in categories:
             if elem.id in ids:
                 elem.only_vip = 0
             else:
                 elem.only_vip = 1
             db_sess.commit()
-        return render_template('user_filter.html', categories=categories)
+        return render_template('user_filter.html', categories=categories,
+                               datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/add_restaurant', methods=['GET', 'POST'])
@@ -240,8 +242,9 @@ def add_restaurant():
         )
         db_sess.add(new_rest)
         db_sess.commit()
-        return render_template('index.html', form=form)
-    return render_template('add_restaurant.html', form=form)
+        return render_template('index.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
+    return render_template('add_restaurant.html', form=form,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/statistics')
@@ -251,7 +254,7 @@ def statistics():
     stats = [['Статистика бота', json_block_data['links']['bot_stat']],
              ['Статистика канала (RU)', json_block_data['links']['channel_stat_ru']],
              ['Статистика канала (EN)', json_block_data['links']['channel_stat_en']]]
-    return render_template('statistics.html', stats=stats)
+    return render_template('statistics.html', stats=stats, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/invoice')
@@ -260,7 +263,8 @@ def invoice():
     ids = list(map(lambda x: x.user, payments))
     users = db_sess.query(User).filter(User.id.in_(ids)).all()
     users = list(map(lambda x: x.username, users))
-    return render_template('invoice.html', payments=payments, users=users)
+    return render_template('invoice.html', payments=payments, users=users,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/bad_words', methods=['GET', 'POST'])
@@ -282,7 +286,8 @@ def bad_words():
     form.lenght.data = block_l
     banned_users = db_sess.query(Blacklist).filter(Blacklist.reason
                                                    == json_block_data['punishments']['ban_words']['name']).all()
-    return render_template('bad_words.html', form=form, banned_users=banned_users)
+    return render_template('bad_words.html', form=form, banned_users=banned_users,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/spam', methods=['GET', 'POST'])
@@ -304,13 +309,14 @@ def spam():
     form.lenght.data = block_l
     banned_users = db_sess.query(Blacklist).filter(Blacklist.reason
                                                    == json_block_data['punishments']['spam']['name']).all()
-    return render_template('spam.html', form=form, banned_users=banned_users)
+    return render_template('spam.html', form=form, banned_users=banned_users,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/all_posts')
 def all_posts():
     posts = db_sess.query(Posts).all()
-    return render_template('all_posts.html', posts=posts)
+    return render_template('all_posts.html', posts=posts, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/chat_statistics')
@@ -318,7 +324,7 @@ def chat_statistics():
     with open('json/messages.json') as json_b:
         json_block_data = json.load(json_b)
     stats = [['Статистика чата', json_block_data['links']['chat_stat']]]
-    return render_template('statistics.html', stats=stats)
+    return render_template('statistics.html', stats=stats, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/moderator', methods=['GET', 'POST'])
@@ -339,37 +345,40 @@ def moderator():
     for elem in json_block_data['messages']['en']:
         sp.append((elem, json_block_data['messages']['en'][elem]))
     form.price.data = json_block_data['payments']['VIP'] // 100
-    return render_template('moderator.html', messages=sp, form=form)
+    return render_template('moderator.html', messages=sp, form=form,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/all_restaurants')
 def all_restaurants():
     restaurants = db_sess.query(Restaurant).all()
-    return render_template('all_restaurants.html', restaurants=restaurants)
+    return render_template('all_restaurants.html', restaurants=restaurants,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/all_types')
 def all_types():
     types = db_sess.query(RestaurantTypes).all()
-    return render_template('all_types.html', types=types)
+    return render_template('all_types.html', types=types, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/all_banners')
 def all_banners():
     banners = db_sess.query(Banner).all()
-    return render_template('all_banners.html', banners=banners)
+    return render_template('all_banners.html', banners=banners,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/all_polls')
 def all_polls():
     polls = db_sess.query(Poll).all()
-    return render_template('all_polls.html', polls=polls)
+    return render_template('all_polls.html', polls=polls, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/all_users')
 def all_users():
     users = db_sess.query(User).all()
-    return render_template('all_users.html', users=users)
+    return render_template('all_users.html', users=users, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/planpost/<int:post_id>', methods=['GET', 'POST'])
@@ -391,9 +400,10 @@ def planpost(post_id):
             db_sess.add(new_task)
             db_sess.commit()
         else:
-            return render_template('planform.html', form=form)
+            return render_template('planform.html', form=form,
+                                   datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
         return redirect('/../../all_posts')
-    return render_template('planform.html', form=form)
+    return render_template('planform.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/add_post', methods=['GET', 'POST'])
@@ -415,7 +425,7 @@ def add_post():
         db_sess.add(new_post)
         db_sess.commit()
         return redirect('/all_posts')
-    return render_template('add_post.html', form=form)
+    return render_template('add_post.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/add_category', methods=['GET', 'POST'])
@@ -433,7 +443,7 @@ def add_category():
         db_sess.add(new_type)
         db_sess.commit()
         return redirect('/all_types')
-    return render_template('add_type.html', form=form)
+    return render_template('add_type.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/add_poll', methods=['GET', 'POST'])
@@ -467,8 +477,8 @@ def add_poll():
             db_sess.add(new_task)
             db_sess.commit()
             return redirect('/all_tasks')
-        return render_template('add_poll.html', form=form)
-    return render_template('add_poll.html', form=form)
+        return render_template('add_poll.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
+    return render_template('add_poll.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/add_banner', methods=['GET', 'POST'])
@@ -507,8 +517,9 @@ def add_banner():
             db_sess.add(new_task)
             db_sess.commit()
             return redirect('/all_tasks')
-        return render_template('add_banner.html', form=form)
-    return render_template('add_banner.html', form=form)
+        return render_template('add_banner.html', form=form,
+                               datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
+    return render_template('add_banner.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/edit_post/<int:post_id>', methods=['GET', 'POST'])
@@ -550,7 +561,8 @@ def edit_post(post_id):
     form.text.data = post.text
     if images != ['']:
         form.current_media.data = post.media
-    return render_template('edit_post.html', form=form, images=sp)
+    return render_template('edit_post.html', form=form, images=sp,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/edit_category/<int:type_id>', methods=['GET', 'POST'])
@@ -564,7 +576,7 @@ def edit_category(type_id):
         return redirect('/all_types')
     form.name.data = category.type_name
     form.english_name.data = category.type_name_en
-    return render_template('add_type.html', form=form)
+    return render_template('add_type.html', form=form, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/edit_restaurant/<int:rest_id>', methods=['GET', 'POST'])
@@ -636,7 +648,8 @@ def edit_restaurant(rest_id):
     form.description_en.data = restaurant.description_en
     form.address_en.data = restaurant.address_en
     form.operating_en.data = restaurant.working_hours_en
-    return render_template('edit_restaurant.html', form=form, images=sp)
+    return render_template('edit_restaurant.html', form=form, images=sp,
+                           datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/moder/<int:user_id>')
@@ -671,7 +684,7 @@ def one_poll(poll_id):
             variants.append([i + 1, all_variants[i], round((int(all_totals[i]) / total_answers) * 100)])
         except ZeroDivisionError:
             variants.append([i + 1, all_variants[i], 0])
-    return render_template('poll.html', variants=variants)
+    return render_template('poll.html', variants=variants, datetime=datetime.datetime.now().strftime("%d.%m.%y %H:%M"))
 
 
 @app.route('/unblock_user/<int:user_id>')
