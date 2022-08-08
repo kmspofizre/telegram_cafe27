@@ -22,6 +22,7 @@ from forms.add_poll import PollForm
 from forms.add_banner import BannerForm
 from forms.edit_post import EditPostForm
 from forms.edit_restaurant import EditRestaurantForm
+from forms.phrase_form import PhraseForm
 import datetime
 import os
 import secrets
@@ -347,9 +348,9 @@ def moderator():
     with open('json/messages.json') as json_b:
         json_block_data = json.load(json_b)
     for elem in json_block_data['messages']['ru']:
-        sp.append((elem, json_block_data['messages']['ru'][elem]))
+        sp.append((f"{elem}-ru", json_block_data['messages']['ru'][elem]))
     for elem in json_block_data['messages']['en']:
-        sp.append((elem, json_block_data['messages']['en'][elem]))
+        sp.append((f"{elem}-en", json_block_data['messages']['en'][elem]))
     form.price.data = json_block_data['payments']['VIP'] // 100
     return render_template('moderator.html', messages=sp, form=form,
                            datetime=(datetime.datetime.now() + datetime.timedelta(hours=3)).strftime("%d.%m.%y %H:%M"))
@@ -713,6 +714,22 @@ def unblock_user(user_id):
     db_sess.delete(user_blacklist)
     db_sess.commit()
     return redirect('/../all_users')
+
+
+@app.route('/change_phrase/<phrase>', methods=['GET', 'POST'])
+def change_phrase(phrase):
+    with open('json/messages.json') as json_b:
+        json_block_data = json.load(json_b)
+    form = PhraseForm()
+    ph = phrase.split('-')
+    letter = json_block_data['messages'][ph[1]][ph[0]]
+    if form.validate_on_submit():
+        json_block_data['messages'][ph[1]][ph[0]] = form.name.data
+        with open('json/messages.json', 'w') as json_b:
+            json.dump(json_block_data, json_b)
+        return redirect('/../moderator')
+    form.name.data = letter
+    return render_template('change_phrase.html', form=form)
 
 
 def main():
