@@ -17,7 +17,7 @@ def lonlat_distance(a, b):
     # Вычисляем расстояние между точками.
     distance = math.sqrt(dx * dx + dy * dy)
 
-    return distance
+    return round(distance, 2)
 
 
 
