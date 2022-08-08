@@ -108,7 +108,7 @@ def planform(rest_id):
                                  day=form.date.data.day,
                                  hour=form.time.data.hour,
                                  minute=form.time.data.minute)
-        if date > datetime.datetime.now():
+        if date > datetime.datetime.now() + datetime.timedelta(hours=3):
             new_task = Task(
                 task_type='restaurant',
                 item_id=rest_id,
@@ -399,7 +399,7 @@ def planpost(post_id):
                                  day=form.date.data.day,
                                  hour=form.time.data.hour,
                                  minute=form.time.data.minute)
-        if date > datetime.datetime.now():
+        if date > datetime.datetime.now() + datetime.timedelta(hours=3):
             new_task = Task(
                 task_type='post',
                 item_id=post_id,
@@ -468,7 +468,7 @@ def add_poll():
                                  day=form.publication_date.data.day,
                                  hour=form.publication_time.data.hour,
                                  minute=form.publication_time.data.minute)
-        if date > datetime.datetime.now():
+        if date > datetime.datetime.now() + datetime.timedelta(hours=3):
             header = form.name.data
             variants = form.variants.data
             is_anon = form.is_anon.data
@@ -506,7 +506,7 @@ def add_banner():
                                  day=form.publication_date.data.day,
                                  hour=form.publication_time.data.hour,
                                  minute=form.publication_time.data.minute)
-        if date > datetime.datetime.now():
+        if date > datetime.datetime.now() + datetime.timedelta(hours=3):
             text = form.text.data
             name = form.name.data
             image = form.image.raw_data
