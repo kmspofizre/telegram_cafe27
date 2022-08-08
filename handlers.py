@@ -409,7 +409,7 @@ def add_to_favourite(user_tg, restaurant, message, chat, context, media_message,
     except TypeError:
         chosen_restaurant.in_favourite = 1
     try:
-        restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        restaurant_owner = db_sess.query(User).filter(User.id == chosen_restaurant.owner).one().user_link
     except sqlalchemy.exc.NoResultFound:
         restaurant_owner = 'https://cafe27.ru'
     tlg_button.url = restaurant_owner
@@ -450,7 +450,7 @@ def del_from_favourite(user_tg, restaurant, message, chat, context, media_messag
     except TypeError:
         chosen_restaurant.in_favourite = 0
     try:
-        restaurant_owner = db_sess.query(User).filter(User.id == restaurant.owner).one().user_link
+        restaurant_owner = db_sess.query(User).filter(User.id == chosen_restaurant.owner).one().user_link
     except sqlalchemy.exc.NoResultFound:
         restaurant_owner = 'https://cafe27.ru'
     tlg_button.url = restaurant_owner
