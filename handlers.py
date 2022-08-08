@@ -1968,7 +1968,7 @@ def location_hand(update, context):
                     message = json_messages_data['messages']['ru']['distance_to_object']
                 else:
                     message = json_messages_data['messages']['en']['distance_to_object']
-            distance = int(lonlat_distance(user_location, restaurant_location)) / 1000
+            distance = round(int(lonlat_distance(user_location, restaurant_location)) / 1000, 1)
             update.message.reply_text(text=f"{message}{distance} km")
             context.chat_data['place_location'] = 'nearest'
         else:
@@ -1978,7 +1978,7 @@ def location_hand(update, context):
             ds = dict()
             for elem in all_rests:
                 restaurant_location = tuple(map(lambda x: float(x), elem.coordinates.split(',')))
-                ds[elem] = int(lonlat_distance(user_location, restaurant_location)) / 1000
+                ds[elem] = round(int(lonlat_distance(user_location, restaurant_location)) / 1000, 1)
             ds = list(ds.items())
             ds = sorted(ds, key=lambda x: x[1])
             ds = ds[:5]
@@ -2047,7 +2047,7 @@ def location_hand(update, context):
         ds = dict()
         for elem in all_rests:
             restaurant_location = tuple(map(lambda x: float(x), elem.coordinates.split(',')))
-            ds[elem] = int(lonlat_distance(user_location, restaurant_location)) / 1000
+            ds[elem] = round(int(lonlat_distance(user_location, restaurant_location)) / 1000, 1)
         ds = list(ds.items())
         ds = sorted(ds, key=lambda x: x[1])
         ds = ds[:5]
