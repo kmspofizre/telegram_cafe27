@@ -119,5 +119,16 @@ def card_inline_keyboard_del_en(add_del, des_min):
         description = InlineKeyboardButton(text=json_messages_data['messages']['en']['minimize'])
     contact_ru = InlineKeyboardButton(text=json_messages_data['messages']['en']['contact'])
 
-    rate = InlineKeyboardButton(text=json_messages_data['messages']['ru']['rate'])
+    rate = InlineKeyboardButton(text=json_messages_data['messages']['en']['rate'])
     return favourite_ru, contact_ru, description, rate
+
+
+five_nearest = ReplyKeyboardMarkup([
+    [KeyboardButton(text='🔙'),
+     KeyboardButton(text='Пять ближайших 🧭', request_location=True)]], resize_keyboard=True,
+    input_field_placeholder='')
+
+five_nearest_en = ReplyKeyboardMarkup([
+    [KeyboardButton(text='🔙'),
+     KeyboardButton(text='Five nearest 🧭', request_location=True)]], resize_keyboard=True,
+    input_field_placeholder='')

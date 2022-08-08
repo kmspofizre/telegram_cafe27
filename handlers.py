@@ -18,7 +18,7 @@ from keyboards import main_menu_keyboard, card_inline_keyboard_del_ru, \
     geoposition_keyboard_en, rate_keyboard, personal_account_vip_ru, \
     personal_account_default_ru, personal_account_vip_en, \
     personal_account_default_en, get_info_keyboard_ru, get_info_keyboard_en, \
-    single_vip_keyboard_ru, single_vip_keyboard_en
+    single_vip_keyboard_ru, single_vip_keyboard_en, five_nearest, five_nearest_en
 
 from templates import card_html_with_score_ru, card_html_without_score_ru, \
     card_short_html, card_html_with_score_en, card_html_without_score_en, \
@@ -209,14 +209,14 @@ def rest_to_channel(context):
 def types_init():
     types = ['Кафе', 'Рестораны', 'Суши-бары', 'Пиццерии',
              'Пабы', 'Кофейни', 'Столовые', 'Траттории',
-             'По популярности', '⭐️⭐️⭐️⭐️⭐️', '⭐️⭐️⭐️⭐️',
+             'По популярности', 'Пять ближайших', '⭐️⭐️⭐️⭐️⭐️', '⭐️⭐️⭐️⭐️',
              '⭐️⭐️⭐️', '⭐️⭐️', '⭐️']
     types_en = ['Cafe', 'Restaurants', 'Sushi Bars', 'Pizzerias',
-                'Pubs', 'Coffee Shops', 'Cafeterias', 'Trattorias', 'By popularity',
+                'Pubs', 'Coffee Shops', 'Cafeterias', 'Trattorias', 'By popularity', 'Five nearest',
                 '⭐️⭐️⭐️⭐️⭐️', '⭐️⭐️⭐️⭐️', '⭐️⭐️⭐️',
                 '⭐️⭐️', '⭐️']
-    types_default = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]
-    callbacks = ['', '', '', '', '', '', '', '',
+    types_default = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1]
+    callbacks = ['', '', '', '', '', '', '', '', 'nearest',
                  'popularity', 'st_5', 'st_4', 'st_3', 'st_2', 'st_1']
     for i in range(len(types)):
         if not db_sess.query(RestaurantTypes).filter(RestaurantTypes.type_name == types[i]).all():
@@ -845,6 +845,7 @@ def start(update, context):
             )
             db_sess.add(new_user)
             db_sess.commit()
+        user = db_sess.query(User).filter(User.telegram_id == update.message.from_user.id).all()
         if user[0].name is not None:
             name = user[0].name
         else:
@@ -1951,22 +1952,161 @@ def text_handler(update, context):
 def location_hand(update, context):
     with open('json/messages.json') as json_messages:
         json_messages_data = json.load(json_messages)
-    user_location = update.message.location
-    user_location = user_location['latitude'], user_location['longitude']
-    restaurant_location = tuple(map(lambda x: float(x), context.chat_data['place_location'].split(',')))
     try:
-        user_language = context.chat_data['language']
-        if user_language == 'ru':
-            message = json_messages_data['messages']['ru']['distance_to_object']
+        if context.chat_data['place_location'] != 'nearest':
+            user_location = update.message.location
+            user_location = user_location['latitude'], user_location['longitude']
+            restaurant_location = tuple(map(lambda x: float(x), context.chat_data['place_location'].split(',')))
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    message = json_messages_data['messages']['ru']['distance_to_object']
+                else:
+                    message = json_messages_data['messages']['en']['distance_to_object']
+            except KeyError:
+                if update.message.from_user.language_code == 'ru':
+                    message = json_messages_data['messages']['ru']['distance_to_object']
+                else:
+                    message = json_messages_data['messages']['en']['distance_to_object']
+            distance = int(lonlat_distance(user_location, restaurant_location)) / 1000
+            update.message.reply_text(text=f"{message}{distance} km")
+            context.chat_data['place_location'] = 'nearest'
         else:
-            message = json_messages_data['messages']['en']['distance_to_object']
+            all_rests = db_sess.query(Restaurant).all()
+            user_location = update.message.location
+            user_location = user_location['latitude'], user_location['longitude']
+            ds = dict()
+            for elem in all_rests:
+                restaurant_location = tuple(map(lambda x: float(x), elem.coordinates.split(',')))
+                ds[elem] = int(lonlat_distance(user_location, restaurant_location)) / 1000
+            ds = list(ds.items())
+            ds = sorted(ds, key=lambda x: x[1])
+            ds = ds[:5]
+            for restaurant in ds:
+                rest = show_one_rest(restaurant[0].id, context, update.message.from_user)
+                if rest['favourite']:
+                    try:
+                        user_language = context.chat_data['language']
+                        if user_language == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                            text1 = json_messages_data['messages']['ru']['distance_to_object']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                            text1 = json_messages_data['messages']['en']['distance_to_object']
+                    except KeyError:
+                        if update.message.from_user.language_code == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                            text1 = json_messages_data['messages']['ru']['distance_to_object']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                            text1 = json_messages_data['messages']['en']['distance_to_object']
+                    fav_button_call = f"delfav_{rest['id']}"
+
+                else:
+                    try:
+                        user_language = context.chat_data['language']
+                        if user_language == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                            text1 = json_messages_data['messages']['ru']['distance_to_object']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                            text1 = json_messages_data['messages']['en']['distance_to_object']
+                    except KeyError:
+                        if update.message.from_user.language_code == 'ru':
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                            text = json_messages_data['messages']['ru']['actions']
+                            text1 = json_messages_data['messages']['ru']['distance_to_object']
+                        else:
+                            fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                            text = json_messages_data['messages']['en']['actions']
+                            text1 = json_messages_data['messages']['en']['distance_to_object']
+                    fav_button_call = f"addfav_{rest['id']}"
+                media_message = context.bot.send_media_group(update.message.from_user.id,
+                                                             media=rest['media'])
+                tlg_button.url = rest['owner_link']
+                rate.callback_data = f"rate_{rest['id']}_{media_message[0].message_id}_des"
+                fav_button.callback_data = fav_button_call + f'_{media_message[0].message_id}_des'
+                describe.callback_data = f"des_{rest['id']}_{media_message[0].message_id}_des"
+                inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                                     [fav_button],
+                                                     [rate]])
+                context.bot.sendMessage(update.message.from_user.id, text=text, reply_markup=inl_keyboard)
+                context.bot.sendMessage(update.message.from_user.id,
+                                        text=f"{text1} {restaurant[1]} km")
+
     except KeyError:
-        if update.message.from_user.language_code == 'ru':
-            message = json_messages_data['messages']['ru']['distance_to_object']
-        else:
-            message = json_messages_data['messages']['en']['distance_to_object']
-    distance = int(lonlat_distance(user_location, restaurant_location)) / 1000
-    update.message.reply_text(text=f"{message}{distance} km")
+        all_rests = db_sess.query(Restaurant).all()
+        user_location = update.message.location
+        user_location = user_location['latitude'], user_location['longitude']
+        ds = dict()
+        for elem in all_rests:
+            restaurant_location = tuple(map(lambda x: float(x), elem.coordinates.split(',')))
+            ds[elem] = int(lonlat_distance(user_location, restaurant_location)) / 1000
+        ds = list(ds.items())
+        ds = sorted(ds, key=lambda x: x[1])
+        ds = ds[:5]
+        for restaurant in ds:
+            rest = show_one_rest(restaurant[0].id, context, update.message.from_user)
+            if rest['favourite']:
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                        text = json_messages_data['messages']['ru']['actions']
+                        text1 = json_messages_data['messages']['ru']['distance_to_object']
+                    else:
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                        text = json_messages_data['messages']['en']['actions']
+                        text1 = json_messages_data['messages']['en']['distance_to_object']
+                except KeyError:
+                    if update.message.from_user.language_code == 'ru':
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('del', 'des')
+                        text = json_messages_data['messages']['ru']['actions']
+                        text1 = json_messages_data['messages']['ru']['distance_to_object']
+                    else:
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('del', 'des')
+                        text = json_messages_data['messages']['en']['actions']
+                        text1 = json_messages_data['messages']['en']['distance_to_object']
+                fav_button_call = f"delfav_{rest['id']}"
+
+            else:
+                try:
+                    user_language = context.chat_data['language']
+                    if user_language == 'ru':
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                        text = json_messages_data['messages']['ru']['actions']
+                        text1 = json_messages_data['messages']['ru']['distance_to_object']
+                    else:
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                        text = json_messages_data['messages']['en']['actions']
+                        text1 = json_messages_data['messages']['en']['distance_to_object']
+                except KeyError:
+                    if update.message.from_user.language_code == 'ru':
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_ru('add', 'des')
+                        text = json_messages_data['messages']['ru']['actions']
+                        text1 = json_messages_data['messages']['ru']['distance_to_object']
+                    else:
+                        fav_button, tlg_button, describe, rate = card_inline_keyboard_del_en('add', 'des')
+                        text = json_messages_data['messages']['en']['actions']
+                        text1 = json_messages_data['messages']['en']['distance_to_object']
+                fav_button_call = f"addfav_{rest['id']}"
+            media_message = context.bot.send_media_group(update.message.from_user.id,
+                                                         media=rest['media'])
+            tlg_button.url = rest['owner_link']
+            rate.callback_data = f"rate_{rest['id']}_{media_message[0].message_id}_des"
+            fav_button.callback_data = fav_button_call + f'_{media_message[0].message_id}_des'
+            describe.callback_data = f"des_{rest['id']}_{media_message[0].message_id}_des"
+            inl_keyboard = InlineKeyboardMarkup([[describe, tlg_button],
+                                                 [fav_button],
+                                                 [rate]])
+            context.bot.sendMessage(update.message.from_user.id, text=text, reply_markup=inl_keyboard)
+            context.bot.sendMessage(update.message.from_user.id, text=f"{text1} {restaurant[1]} km")
 
 
 def rate_restaurant_short(user_tg, context, rest, message, text_message_id, json_data, chat):
@@ -2493,6 +2633,23 @@ def callback_hand(update, context):
                     else:
                         text = json_messages_data['messages']['en']['not_found']
                 context.bot.sendMessage(update.callback_query.from_user.id, text=text)
+        elif data[0] == 'nearest':
+            try:
+                user_language = context.chat_data['language']
+                if user_language == 'ru':
+                    keyboard = five_nearest
+                    text = json_messages_data['messages']['ru']['five_nearest']
+                else:
+                    keyboard = five_nearest_en
+                    text = json_messages_data['messages']['en']['five_nearest']
+            except KeyError:
+                if update.callback_query.from_user.language_code == 'ru':
+                    keyboard = five_nearest
+                    text = json_messages_data['messages']['ru']['five_nearest']
+                else:
+                    keyboard = five_nearest_en
+                    text = json_messages_data['messages']['en']['five_nearest']
+            context.bot.sendMessage(update.callback_query.from_user.id, text=text, reply_markup=keyboard)
 
 
 def checkout_process(update, context):
