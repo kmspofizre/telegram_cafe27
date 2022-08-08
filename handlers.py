@@ -1968,8 +1968,8 @@ def location_hand(update, context):
                     message = json_messages_data['messages']['ru']['distance_to_object']
                 else:
                     message = json_messages_data['messages']['en']['distance_to_object']
-            distance = round(int(lonlat_distance(user_location, restaurant_location)) / 1000, 1)
-            update.message.reply_text(text=f"{message}{distance} km")
+            distance = int(lonlat_distance(user_location, restaurant_location)) / 1000
+            update.message.reply_text(text=f"{message}{round(distance, 1)} km")
             context.chat_data['place_location'] = 'nearest'
         else:
             all_rests = db_sess.query(Restaurant).all()
@@ -1978,7 +1978,7 @@ def location_hand(update, context):
             ds = dict()
             for elem in all_rests:
                 restaurant_location = tuple(map(lambda x: float(x), elem.coordinates.split(',')))
-                ds[elem] = round(int(lonlat_distance(user_location, restaurant_location)) / 1000, 1)
+                ds[elem] = int(lonlat_distance(user_location, restaurant_location)) / 1000
             ds = list(ds.items())
             ds = sorted(ds, key=lambda x: x[1])
             ds = ds[:5]
@@ -2038,7 +2038,7 @@ def location_hand(update, context):
                                                      [rate]])
                 context.bot.sendMessage(update.message.from_user.id, text=text, reply_markup=inl_keyboard)
                 context.bot.sendMessage(update.message.from_user.id,
-                                        text=f"{text1} {restaurant[1]} km")
+                                        text=f"{text1} {round(restaurant[1], 1)} km")
 
     except KeyError:
         all_rests = db_sess.query(Restaurant).all()
@@ -2047,7 +2047,7 @@ def location_hand(update, context):
         ds = dict()
         for elem in all_rests:
             restaurant_location = tuple(map(lambda x: float(x), elem.coordinates.split(',')))
-            ds[elem] = round(int(lonlat_distance(user_location, restaurant_location)) / 1000, 1)
+            ds[elem] = int(lonlat_distance(user_location, restaurant_location)) / 1000
         ds = list(ds.items())
         ds = sorted(ds, key=lambda x: x[1])
         ds = ds[:5]
@@ -2106,7 +2106,7 @@ def location_hand(update, context):
                                                  [fav_button],
                                                  [rate]])
             context.bot.sendMessage(update.message.from_user.id, text=text, reply_markup=inl_keyboard)
-            context.bot.sendMessage(update.message.from_user.id, text=f"{text1} {restaurant[1]} km")
+            context.bot.sendMessage(update.message.from_user.id, text=f"{text1} {round(restaurant[1], 1)} km")
 
 
 def rate_restaurant_short(user_tg, context, rest, message, text_message_id, json_data, chat):
