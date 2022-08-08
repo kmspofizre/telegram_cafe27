@@ -841,7 +841,7 @@ def start(update, context):
                 date_of_appearance=datetime.datetime.now(),
                 name=update.message.from_user.full_name,
                 user_link=update.message.from_user.link,
-                chat_id=update.message.from_user.chat_id
+                chat_id=update.message.chat_id
             )
             db_sess.add(new_user)
             db_sess.commit()
